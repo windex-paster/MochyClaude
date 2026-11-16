@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import com.mochyy.mochymusic.ui.screens.update.showUpdateSheet
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
@@ -593,6 +594,22 @@ fun MochySettingsScreen(navController: NavController, pane: SettingsPane? = null
 
                         // pages the modules that are on bring to settings, right under modules
                         com.mochyy.mochymusic.ui.screens.settings.modules.ModuleSettingsPages(open = open, selected = selected)
+
+                        // the version sheet checks for a newer release as soon as it opens
+                        SettingsGroup {
+                            SettingsRow(
+                                title = stringResource(R.string.settings_check_update),
+                                iconRes = R.drawable.update,
+                                tile = Color(0xFF34C759),
+                                onClick = {
+                                    sheets.showUpdateSheet(
+                                        com.mochyy.mochymusic.core.updater.UpdateState.Checking,
+                                        onOpenDevSpace = { person -> navController.navigate("developer_space?person=$person") },
+                                    )
+                                },
+                                last = true
+                            )
+                        }
                     }
                 }
             }
