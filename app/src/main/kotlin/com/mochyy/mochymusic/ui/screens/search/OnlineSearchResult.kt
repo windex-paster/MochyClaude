@@ -468,16 +468,16 @@ private fun SourceAndCategoryRows(
 ) {
     Column {
         if (sourceLabels.isNotEmpty()) {
-            SearchCategoryRow(
-                categories = listOf("YouTube Music") + sourceLabels,
+            BubbleChipRow(
+                labels = listOf("YouTube Music") + sourceLabels,
                 selectedIndex = (sourceIndex ?: -1) + 1,
                 onSelect = { index -> onSource(if (index == 0) null else index - 1) },
             )
         }
         if (sourceIndex == null) {
             if (sourceLabels.isNotEmpty()) Spacer(modifier = Modifier.height(8.dp))
-            SearchCategoryRow(
-                categories = SearchCategories.map { stringResource(it.first) },
+            BubbleChipRow(
+                labels = SearchCategories.map { stringResource(it.first) },
                 selectedIndex = selectedIndex,
                 onSelect = onCategory,
             )
