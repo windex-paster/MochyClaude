@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nw_widget_pill_glass">Controls pill · Glass</string>
+    <string name="nw_widget_pill_default">Controls pill · Default</string>
+    <string name="nw_widget_card_glass">Player card · Glass</string>
+    <string name="nw_widget_card_default">Player card · Default</string>
+    <string name="nw_widget_pill_glass_desc">A frosted pill with round buttons: previous, play, next and like</string>
+    <string name="nw_widget_pill_default_desc">A dark pill with round buttons: previous, play, next and like</string>
+    <string name="nw_widget_card_glass_desc">A frosted card with the cover, the song and controls</string>
+    <string name="nw_widget_card_default_desc">A dark card with the cover, the song and controls</string>
+    <string name="nw_widget_idle_title">Mochy</string>
+    <string name="nw_widget_idle_artist">Play something</string>
+</resources>

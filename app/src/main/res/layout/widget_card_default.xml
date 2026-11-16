@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="6dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/nw_default_card"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="10dp">
+
+        <ImageView
+            android:id="@+id/nw_card_cover"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@drawable/nw_default_circle"
+            android:padding="14dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_nw_note" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/nw_card_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/nw_widget_idle_title"
+                android:textColor="#FFFFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/nw_card_artist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/nw_widget_idle_artist"
+                android:textColor="#B3FFFFFF"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/nw_card_prev"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nw_default_circle"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_nw_prev" />
+        <ImageView
+            android:id="@+id/nw_card_play"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nw_default_circle_play"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_nw_play" />
+        <ImageView
+            android:id="@+id/nw_card_next"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nw_default_circle"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_nw_next" />
+    </LinearLayout>
+</FrameLayout>

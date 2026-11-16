@@ -84,7 +84,11 @@ class MochyWidgetManager @Inject constructor(
         val widgetIds = appWidgetManager.getAppWidgetIds(componentName)
         val turntableComponentName = ComponentName(context, TurntableWidgetReceiver::class.java)
         val turntableWidgetIds = if (progressOnly) IntArray(0) else appWidgetManager.getAppWidgetIds(turntableComponentName)
-        if (widgetIds.isEmpty() && turntableWidgetIds.isEmpty()) return
+        // the glass and default pills and cards have no progress bar either
+        val styledIds = if (progressOnly) emptyList() else StyledKinds.map { kind ->
+            kind to appWidgetManager.getAppWidgetIds(ComponentName(context, kind.receiver))
+        }.filter { it.second.isNotEmpty() }
+        if (widgetIds.isEmpty() && turntableWidgetIds.isEmpty() && styledIds.isEmpty()) return
 
         val albumArt: Bitmap?
         val circularAlbumArt: Bitmap?
@@ -116,6 +120,11 @@ class MochyWidgetManager @Inject constructor(
                 )
                 appWidgetManager.updateAppWidget(widgetId, views)
             }
+        }
+
+        styledIds.forEach { (kind, ids) ->
+            val views = createStyledRemoteViews(kind, title, artist, albumArt, circularAlbumArt, isPlaying, isLiked)
+            ids.forEach { appWidgetManager.updateAppWidget(it, views) }
         }
 
         if (turntableWidgetIds.isNotEmpty()) {
@@ -344,6 +353,53 @@ class MochyWidgetManager @Inject constructor(
         return views
     }
 
+    /** one of the pill and card widgets, in its glass or default look */
+    private class StyledKind(val receiver: Class<*>, val layout: Int, val pill: Boolean)
+
+    private fun createStyledRemoteViews(
+        kind: StyledKind,
+        title: String,
+        artist: String,
+        albumArt: Bitmap?,
+        circularAlbumArt: Bitmap?,
+        isPlaying: Boolean,
+        isLiked: Boolean,
+    ): RemoteViews {
+        val views = RemoteViews(context.packageName, kind.layout)
+        val playIcon = if (isPlaying) R.drawable.ic_nw_pause else R.drawable.ic_nw_play
+        if (kind.pill) {
+            if (circularAlbumArt != null) {
+                views.setImageViewBitmap(R.id.nw_pill_cover, circularAlbumArt)
+                views.setViewPadding(R.id.nw_pill_cover, 0, 0, 0, 0)
+            }
+            views.setImageViewResource(R.id.nw_pill_play, playIcon)
+            views.setImageViewResource(R.id.nw_pill_like, if (isLiked) R.drawable.ic_nw_heart else R.drawable.ic_nw_heart_outline)
+            views.setOnClickPendingIntent(R.id.nw_pill_cover, getOpenAppIntent())
+            views.setOnClickPendingIntent(R.id.nw_pill_prev, getStyledIntent(MusicWidgetReceiver.ACTION_PREVIOUS, 6))
+            views.setOnClickPendingIntent(R.id.nw_pill_play, getPlayPauseIntent())
+            views.setOnClickPendingIntent(R.id.nw_pill_next, getStyledIntent(MusicWidgetReceiver.ACTION_NEXT, 7))
+            views.setOnClickPendingIntent(R.id.nw_pill_like, getLikeIntent())
+        } else {
+            views.setTextViewText(R.id.nw_card_title, title.ifBlank { context.getString(R.string.nw_widget_idle_title) })
+            views.setTextViewText(R.id.nw_card_artist, artist.ifBlank { context.getString(R.string.nw_widget_idle_artist) })
+            if (albumArt != null) {
+                views.setImageViewBitmap(R.id.nw_card_cover, getRoundedCornerBitmap(albumArt, 40f))
+                views.setViewPadding(R.id.nw_card_cover, 0, 0, 0, 0)
+            }
+            views.setImageViewResource(R.id.nw_card_play, playIcon)
+            views.setOnClickPendingIntent(R.id.nw_card_cover, getOpenAppIntent())
+            views.setOnClickPendingIntent(R.id.nw_card_prev, getStyledIntent(MusicWidgetReceiver.ACTION_PREVIOUS, 6))
+            views.setOnClickPendingIntent(R.id.nw_card_play, getPlayPauseIntent())
+            views.setOnClickPendingIntent(R.id.nw_card_next, getStyledIntent(MusicWidgetReceiver.ACTION_NEXT, 7))
+        }
+        return views
+    }
+
+    private fun getStyledIntent(action: String, requestCode: Int): PendingIntent {
+        val intent = Intent(context, MusicWidgetReceiver::class.java).apply { this.action = action }
+        return PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    }
+
     private fun getCircularDefaultIcon(): Bitmap {
 
         val drawable = context.packageManager.getApplicationIcon(context.packageName)
@@ -433,6 +489,15 @@ class MochyWidgetManager @Inject constructor(
             5,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    private companion object {
+        val StyledKinds = listOf(
+            StyledKind(PillGlassWidgetReceiver::class.java, R.layout.widget_pill_glass, pill = true),
+            StyledKind(PillDefaultWidgetReceiver::class.java, R.layout.widget_pill_default, pill = true),
+            StyledKind(CardGlassWidgetReceiver::class.java, R.layout.widget_card_glass, pill = false),
+            StyledKind(CardDefaultWidgetReceiver::class.java, R.layout.widget_card_default, pill = false),
         )
     }
 }
