@@ -312,6 +312,8 @@ class SoundCloudModule : BrowsableSourceModule, ModuleFields {
         val scripts = extractScriptUrls(html)
         if (scripts.isEmpty()) return KeyHunt(null, "no scripts found on its page (${html.length} characters came back)")
         var failed = 0
+        // where the words "client_id" first show up, for a report of how the site writes it now
+        var nearest: String? = nearClientId(html)
         // the id sits in one of the last scripts the page loads
         for (script in scripts.asReversed()) {
             val body = try {
@@ -324,9 +326,19 @@ class SoundCloudModule : BrowsableSourceModule, ModuleFields {
                 failed++
                 continue
             }
-            extractClientId(body.text)?.let { return KeyHunt(it) }
+            val text = body.text
+            extractClientId(text)?.let { return KeyHunt(it) }
+            if (nearest == null) nearest = nearClientId(text)
         }
-        return KeyHunt(null, "not in any of its ${scripts.size} scripts ($failed didn't load)")
+        val seen = nearest?.let { "; nearest text: «$it»" } ?: "; the words client_id aren't in any of them"
+        return KeyHunt(null, "not in any of its ${scripts.size} scripts ($failed didn't load)$seen")
+    }
+
+    /** a few words around the first "client_id" in [text], on one line; null when it isn't there */
+    private fun nearClientId(text: String): String? {
+        val at = text.indexOf("client_id")
+        if (at < 0) return null
+        return text.substring((at - 20).coerceAtLeast(0), (at + 70).coerceAtMost(text.length)).replace(Regex("\\s+"), " ")
     }
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
