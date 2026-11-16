@@ -5117,7 +5117,7 @@ class MusicService :
     ): com.mochyy.mochymusic.playback.custom.CustomStreamResult {
         val module = sourceModules.browsable(moduleId)
             ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("$moduleId isn't installed")
-        return when (val result = module.streamFor(sourceId, sourceModules.picks(moduleId))) {
+        return when (val result = withContext(Dispatchers.IO) { module.streamFor(sourceId, sourceModules.picks(moduleId)) }) {
             is com.mochyy.mochymusic.module.ResolveResult.Found -> moduleStream(mediaId, module, result.stream)
             is com.mochyy.mochymusic.module.ResolveResult.NotFound ->
                 throw com.mochyy.mochymusic.playback.custom.NoProviderException(result.reason)

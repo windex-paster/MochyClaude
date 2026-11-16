@@ -58,7 +58,8 @@ constructor(
         val module = source(moduleId) ?: return
         sourceStates[moduleId] = SourceSearchState.Loading
         viewModelScope.launch {
-            sourceStates[moduleId] = runCatching { module.search(query) }
+            // the module's calls block on the network, which android refuses on the main thread
+            sourceStates[moduleId] = runCatching { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { module.search(query) } }
                 .fold(
                     onSuccess = { SourceSearchState.Done(it) },
                     onFailure = {
