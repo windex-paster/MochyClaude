@@ -342,7 +342,8 @@ class SoundCloudModule : BrowsableSourceModule, ModuleFields {
         private val ClientIdFormat = Regex("[A-Za-z0-9]{32}")
         private val Headers = mapOf(
             "accept" to "application/json",
-            "user-agent" to "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
+            // a desktop browser: asked as a phone, the website sends its mobile scripts, which don't carry the key
+            "user-agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         )
 
         // the website's own page and scripts, asked for as a browser would
