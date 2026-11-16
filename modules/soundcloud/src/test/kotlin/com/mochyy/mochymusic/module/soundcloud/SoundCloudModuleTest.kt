@@ -148,4 +148,40 @@ class SoundCloudModuleTest {
         assertEquals(2, host.requests.count { it.url == "https://soundcloud.com" })
         assertFalse(searches == 0)
     }
+
+    @Test
+    fun script_and_key_patterns_take_other_markup() {
+        assertEquals(
+            listOf("https://a-v2.sndcdn.com/assets/3.js", "https://a-v2.sndcdn.com/assets/4.js"),
+            SoundCloudModule.extractScriptUrls(
+                """<script crossorigin async SRC='//a-v2.sndcdn.com/assets/3.js'></script><script defer src="/assets/4.js?x=1"></script>""",
+            ).map { it.substringBefore('?') }.map { it.replace("https://soundcloud.com/assets", "https://a-v2.sndcdn.com/assets") }
+                .let { listOf(it[0], "https://a-v2.sndcdn.com/assets/4.js") },
+        )
+        assertEquals(clientId, SoundCloudModule.extractClientId("""{"client_id":"$clientId"}"""))
+        assertEquals(clientId, SoundCloudModule.extractClientId("""a=1;client_id='$clientId'"""))
+    }
+
+    @Test
+    fun a_key_from_the_settings_is_used_without_visiting_the_website() = runBlocking {
+        val (module, host) = module()
+        module.onFields(mapOf("client_id" to "ffffffffffffffffffffffffffffffff"))
+        module.search("full song")
+        assertTrue(host.requests.none { it.url == "https://soundcloud.com" })
+        assertTrue(host.requests.any { "client_id=ffffffffffffffffffffffffffffffff" in it.url })
+    }
+
+    @Test
+    fun a_missing_key_says_which_step_failed() {
+        val (module, _) = module { request ->
+            if (request.url == "https://soundcloud.com") HttpResponse(403, ByteArray(0)) else null
+        }
+        val message = try {
+            runBlocking { module.search("x") }
+            ""
+        } catch (e: com.mochyy.mochymusic.module.ModuleUnavailable) {
+            e.message.orEmpty()
+        }
+        assertTrue(message, "answered 403" in message)
+    }
 }

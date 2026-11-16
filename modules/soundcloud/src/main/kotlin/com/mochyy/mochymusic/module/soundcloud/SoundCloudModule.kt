@@ -4,8 +4,11 @@ import com.mochyy.mochymusic.module.AccountState
 import com.mochyy.mochymusic.module.BrowsableSourceModule
 import com.mochyy.mochymusic.module.CatalogTrack
 import com.mochyy.mochymusic.module.DiagnosticStep
+import com.mochyy.mochymusic.module.FieldKind
 import com.mochyy.mochymusic.module.HttpRequest
 import com.mochyy.mochymusic.module.MatchedTrack
+import com.mochyy.mochymusic.module.ModuleField
+import com.mochyy.mochymusic.module.ModuleFields
 import com.mochyy.mochymusic.module.ModuleHost
 import com.mochyy.mochymusic.module.ModuleInfo
 import com.mochyy.mochymusic.module.ModuleUnavailable
@@ -35,7 +38,7 @@ import java.util.concurrent.ConcurrentHashMap
  * and found again when SoundCloud turns it down. Tracks SoundCloud only lets Go+ listeners hear in
  * full (it serves 30-second previews to everyone else) are left out rather than played cut short.
  */
-class SoundCloudModule : BrowsableSourceModule {
+class SoundCloudModule : BrowsableSourceModule, ModuleFields {
 
     override val info = ModuleInfo(
         id = Id,
@@ -49,6 +52,24 @@ class SoundCloudModule : BrowsableSourceModule {
     private lateinit var host: ModuleHost
     private val json = Json { ignoreUnknownKeys = true }
     private val matches = ConcurrentHashMap<String, SearchHit>()
+
+    // a key people pasted in the module's settings: used as it is, never looked for on the website
+    @Volatile private var manualId: String? = null
+
+    override val fields = listOf(
+        ModuleField(
+            id = FieldClientId,
+            label = "Client ID (optional)",
+            kind = FieldKind.Text,
+            hint = "32 letters and digits",
+            description = "Only needed if search says it couldn't get SoundCloud's key. Open soundcloud.com in a desktop browser, " +
+                "open the network tab, and copy the client_id from any request to api-v2.soundcloud.com.",
+        ),
+    )
+
+    override fun onFields(values: Map<String, String>) {
+        manualId = values[FieldClientId]?.trim()?.takeIf { ClientIdFormat.matches(it) }
+    }
 
     override fun attach(host: ModuleHost) {
         this.host = host
@@ -248,40 +269,64 @@ class SoundCloudModule : BrowsableSourceModule {
                     refreshed = true
                     clientId(refresh = true)
                 }
+                (response.code == 401 || response.code == 403) && manualId != null ->
+                    throw ModuleUnavailable("SoundCloud turned down the client ID from the settings (${response.code})")
                 response.code == 404 -> throw ModuleUnavailable("SoundCloud doesn't have it (404)")
                 else -> throw ModuleUnavailable("SoundCloud answered ${response.code}")
             }
         }
     }
 
-    /** the public client id the website's own scripts carry; kept for a day, since SoundCloud rotates it now and then */
+    /** the key from the settings if there is one, else the public client id the website's own scripts carry, kept for a day since SoundCloud rotates it now and then */
     private fun clientId(refresh: Boolean): String {
+        manualId?.let { return it }
         if (!refresh) {
             val saved = host.storage.get(KeyClientId)
             val at = host.storage.get(KeyClientIdAt)?.toLongOrNull() ?: 0L
             if (saved != null && System.currentTimeMillis() - at < ClientIdLifeMs) return saved
         }
-        val found = findClientId() ?: run {
+        val hunt = findClientId()
+        val found = hunt.id ?: run {
             // an old id may still work: better than none
             host.storage.get(KeyClientId)?.takeIf { !refresh }?.let { return it }
-            throw ModuleUnavailable("Couldn't get SoundCloud's key from its website")
+            throw ModuleUnavailable("Couldn't get SoundCloud's key: ${hunt.problem}. A client ID can be pasted in this module's settings")
         }
         host.storage.set(KeyClientId, found)
         host.storage.set(KeyClientIdAt, System.currentTimeMillis().toString())
         return found
     }
 
-    private fun findClientId(): String? {
-        val page = runCatching { host.http(HttpRequest(Site, headers = Headers + ("accept" to "text/html"))) }.getOrNull()
-            ?.takeIf { it.ok }?.text ?: return null
-        val scripts = extractScriptUrls(page)
+    /** what looking for the key came to: the key, or which step it stopped at */
+    private class KeyHunt(val id: String?, val problem: String = "")
+
+    private fun findClientId(): KeyHunt {
+        val page = try {
+            host.http(HttpRequest(Site, headers = PageHeaders))
+        } catch (e: Exception) {
+            return KeyHunt(null, "the website didn't answer (${e.javaClass.simpleName})")
+        }
+        if (!page.ok) return KeyHunt(null, "the website answered ${page.code}")
+        val html = page.text
+        // some builds put it in the page itself
+        extractClientId(html)?.let { return KeyHunt(it) }
+        val scripts = extractScriptUrls(html)
+        if (scripts.isEmpty()) return KeyHunt(null, "no scripts found on its page (${html.length} characters came back)")
+        var failed = 0
         // the id sits in one of the last scripts the page loads
         for (script in scripts.asReversed()) {
-            val body = runCatching { host.http(HttpRequest(script, headers = Headers)) }.getOrNull()
-                ?.takeIf { it.ok }?.text ?: continue
-            extractClientId(body)?.let { return it }
+            val body = try {
+                host.http(HttpRequest(script, headers = PageHeaders))
+            } catch (e: Exception) {
+                failed++
+                continue
+            }
+            if (!body.ok) {
+                failed++
+                continue
+            }
+            extractClientId(body.text)?.let { return KeyHunt(it) }
         }
-        return null
+        return KeyHunt(null, "not in any of its ${scripts.size} scripts ($failed didn't load)")
     }
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
@@ -293,16 +338,30 @@ class SoundCloudModule : BrowsableSourceModule {
         private const val KeyClientId = "client_id"
         private const val KeyClientIdAt = "client_id_at"
         private const val ClientIdLifeMs = 24L * 60 * 60 * 1000
+        private const val FieldClientId = "client_id"
+        private val ClientIdFormat = Regex("[A-Za-z0-9]{32}")
         private val Headers = mapOf(
             "accept" to "application/json",
             "user-agent" to "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
         )
 
-        private val ScriptRegex = Regex("""<script[^>]+src="(https://[^"]*sndcdn\.com/assets/[^"]+\.js)"""")
-        private val ClientIdRegex = Regex("""client_id\s*[:=]\s*"([A-Za-z0-9]{32})"""")
+        // the website's own page and scripts, asked for as a browser would
+        private val PageHeaders = mapOf(
+            "accept" to "text/html,application/xhtml+xml,application/javascript,*/*;q=0.8",
+            "accept-language" to "en-US,en;q=0.9",
+            "user-agent" to Headers.getValue("user-agent"),
+        )
+
+        // any script tag whatever the order of its attributes or its quotes
+        private val ScriptRegex = Regex("""<script[^>]*?\ssrc\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+        // client_id:"…", client_id="…", "client_id":"…" and the like
+        private val ClientIdRegex = Regex("""["']?client_id["']?\s*[:=]\s*["']([A-Za-z0-9]{32})["']""")
 
         internal fun extractScriptUrls(html: String): List<String> =
-            ScriptRegex.findAll(html).map { it.groupValues[1] }.distinct().toList()
+            ScriptRegex.findAll(html).map { it.groupValues[1] }
+                .map { if (it.startsWith("//")) "https:$it" else if (it.startsWith("/")) Site + it else it }
+                .filter { it.startsWith("https://") && "sndcdn.com" in it && ".js" in it }
+                .distinct().toList()
 
         internal fun extractClientId(script: String): String? =
             ClientIdRegex.find(script)?.groupValues?.get(1)
