@@ -184,4 +184,32 @@ class SoundCloudModuleTest {
         }
         assertTrue(message, "answered 403" in message)
     }
+
+    @Test
+    fun a_pressed_search_result_streams_without_asking_for_the_track_again() = runBlocking {
+        val (module, host) = module()
+        module.search("full song")
+        assertTrue(module.streamFor("111", emptyMap()) is ResolveResult.Found)
+        assertTrue(host.requests.none { "/tracks/111?" in it.url })
+    }
+
+    @Test
+    fun a_file_that_404s_is_skipped_for_the_next_one() = runBlocking {
+        val (module, _) = module { request ->
+            if ("/media/111/prog?" in request.url) HttpResponse(404, ByteArray(0)) else null
+        }
+        val result = module.streamFor("111", emptyMap())
+        assertTrue(result is ResolveResult.Found)
+        assertEquals(StreamFormat.Hls, (result as ResolveResult.Found).stream.format)
+    }
+
+    @Test
+    fun a_failure_names_the_step() = runBlocking {
+        val (module, _) = module { request ->
+            if ("/tracks/111?" in request.url) HttpResponse(404, ByteArray(0)) else null
+        }
+        val result = module.streamFor("111", emptyMap())
+        assertTrue(result is ResolveResult.Unavailable)
+        assertTrue((result as ResolveResult.Unavailable).reason, "the track's details" in result.reason)
+    }
 }

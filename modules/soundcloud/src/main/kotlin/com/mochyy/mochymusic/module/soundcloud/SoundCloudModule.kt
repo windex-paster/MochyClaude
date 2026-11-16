@@ -53,6 +53,9 @@ class SoundCloudModule : BrowsableSourceModule, ModuleFields {
     private val json = Json { ignoreUnknownKeys = true }
     private val matches = ConcurrentHashMap<String, SearchHit>()
 
+    // the tracks of the latest searches as SoundCloud described them, so a press on one needn't ask for it again
+    private val seenTracks = ConcurrentHashMap<String, JsonObject>()
+
     // a key people pasted in the module's settings: used as it is, never looked for on the website
     @Volatile private var manualId: String? = null
 
@@ -94,7 +97,7 @@ class SoundCloudModule : BrowsableSourceModule, ModuleFields {
     override suspend fun search(query: String, limit: Int): List<SearchHit> {
         val q = query.trim()
         if (q.isEmpty()) return emptyList()
-        val body = apiGet { id ->
+        val body = apiGet("the search") { id ->
             "$Api/search/tracks?q=${enc(q)}&limit=$limit&client_id=$id"
         }
         return parseSearch(body)
@@ -103,7 +106,11 @@ class SoundCloudModule : BrowsableSourceModule, ModuleFields {
     internal fun parseSearch(body: String): List<SearchHit> {
         val items = runCatching { json.parseToJsonElement(body).jsonObject["collection"]?.jsonArray }.getOrNull()
             ?: return emptyList()
-        return items.mapNotNull { (it as? JsonObject)?.let(::hitOf) }
+        if (seenTracks.size > 300) seenTracks.clear()
+        return items.mapNotNull { item ->
+            val track = item as? JsonObject ?: return@mapNotNull null
+            hitOf(track)?.also { seenTracks[it.id] = track }
+        }
     }
 
     /** null for what can't be played whole: previews, blocked and region-locked tracks, or a row that isn't a track */
@@ -152,43 +159,73 @@ class SoundCloudModule : BrowsableSourceModule, ModuleFields {
     }
 
     private fun streamOrNull(id: String): SourceStream? {
-        val trackJson = apiGet { cid -> "$Api/tracks/$id?client_id=$cid" }
-        val track = json.parseToJsonElement(trackJson).jsonObject
-        if (!playableInFull(track)) return null
-        val authorization = track.str("track_authorization")
-        val choice = pickTranscoding(track) ?: return null
-
-        val resolved = apiGet { cid ->
-            buildString {
-                append(choice.url).append(if ('?' in choice.url) '&' else '?').append("client_id=").append(cid)
-                if (authorization != null) append("&track_authorization=").append(enc(authorization))
+        // the track as the search described it first; if its stream links are refused (they expire), once more as SoundCloud has it now
+        var problem: ModuleUnavailable? = null
+        for (fresh in listOf(false, true)) {
+            val track = trackOf(id, fresh) ?: continue
+            if (!playableInFull(track)) return null
+            try {
+                return streamOf(id, track)
+            } catch (e: ModuleUnavailable) {
+                problem = e
             }
         }
-        val url = json.parseToJsonElement(resolved).jsonObject.str("url") ?: return null
+        throw problem ?: ModuleUnavailable("SoundCloud sent no track data")
+    }
 
-        val hit = hitOf(track)
-        return SourceStream(
-            url = url,
-            format = if (choice.hls) StreamFormat.Hls else StreamFormat.Progressive,
-            headers = emptyMap(),
-            sourceLabel = "SoundCloud",
-            qualityLabel = choice.label,
-            matched = MatchedTrack(
-                id = id,
-                title = hit?.title ?: track.str("title").orEmpty(),
-                artist = hit?.artist.orEmpty(),
-                album = null,
-                durationMs = hit?.durationMs,
-                confidence = 1f,
-            ),
-            codec = choice.codec,
-        )
+    private fun trackOf(id: String, fresh: Boolean): JsonObject? {
+        if (!fresh) return seenTracks[id]
+        val body = apiGet("the track's details") { cid -> "$Api/tracks/$id?client_id=$cid" }
+        return json.parseToJsonElement(body).jsonObject.also { seenTracks[id] = it }
+    }
+
+    /** the first of the track's files that SoundCloud gives a link to, best first */
+    private fun streamOf(id: String, track: JsonObject): SourceStream? {
+        val authorization = track.str("track_authorization")
+        val choices = transcodings(track)
+        if (choices.isEmpty()) return null
+        var problem: ModuleUnavailable? = null
+        for (choice in choices) {
+            val resolved = try {
+                apiGet("the ${choice.label} stream link") { cid ->
+                    buildString {
+                        append(choice.url).append(if ('?' in choice.url) '&' else '?').append("client_id=").append(cid)
+                        if (authorization != null) append("&track_authorization=").append(enc(authorization))
+                    }
+                }
+            } catch (e: ModuleUnavailable) {
+                problem = e
+                continue
+            }
+            val url = json.parseToJsonElement(resolved).jsonObject.str("url") ?: continue
+            val hit = hitOf(track)
+            return SourceStream(
+                url = url,
+                format = if (choice.hls) StreamFormat.Hls else StreamFormat.Progressive,
+                headers = emptyMap(),
+                sourceLabel = "SoundCloud",
+                qualityLabel = choice.label,
+                matched = MatchedTrack(
+                    id = id,
+                    title = hit?.title ?: track.str("title").orEmpty(),
+                    artist = hit?.artist.orEmpty(),
+                    album = null,
+                    durationMs = hit?.durationMs,
+                    confidence = 1f,
+                ),
+                codec = choice.codec,
+            )
+        }
+        throw problem ?: ModuleUnavailable("SoundCloud gave no stream link")
     }
 
     internal class Transcoding(val url: String, val hls: Boolean, val codec: String, val label: String)
 
     /** a whole file when SoundCloud has one, else the pieces; MP3 before AAC before Opus, since every phone plays the first */
-    internal fun pickTranscoding(track: JsonObject): Transcoding? {
+    internal fun pickTranscoding(track: JsonObject): Transcoding? = transcodings(track).firstOrNull()
+
+    /** every plain file of the track, best first */
+    internal fun transcodings(track: JsonObject): List<Transcoding> {
         val all = track.obj("media")?.get("transcodings")?.let { it as? JsonArray }.orEmpty()
             .mapNotNull { it as? JsonObject }
             .mapNotNull { t ->
@@ -206,7 +243,7 @@ class SoundCloudModule : BrowsableSourceModule, ModuleFields {
                 }
                 Transcoding(url, protocol == "hls", codec, if (protocol == "hls") "$codec · stream" else codec)
             }
-        return all.minWithOrNull(
+        return all.sortedWith(
             compareBy<Transcoding>({ it.hls }, { listOf("MP3", "AAC", "Opus").indexOf(it.codec) }),
         )
     }
@@ -254,14 +291,14 @@ class SoundCloudModule : BrowsableSourceModule, ModuleFields {
     // ---- talking to soundcloud ----------------------------------------------------------------
 
     /** one GET against api-v2; a turned-down client id is found again once, then it's SoundCloud that's out */
-    private fun apiGet(urlFor: (clientId: String) -> String): String {
+    private fun apiGet(what: String, urlFor: (clientId: String) -> String): String {
         var refreshed = false
         while (true) {
             val id = clientId(refresh = false)
             val response = try {
                 host.http(HttpRequest(urlFor(id), headers = Headers))
             } catch (e: Exception) {
-                throw ModuleUnavailable("SoundCloud didn't answer")
+                throw ModuleUnavailable("SoundCloud didn't answer for $what")
             }
             when {
                 response.ok -> return response.text
@@ -270,9 +307,9 @@ class SoundCloudModule : BrowsableSourceModule, ModuleFields {
                     clientId(refresh = true)
                 }
                 (response.code == 401 || response.code == 403) && manualId != null ->
-                    throw ModuleUnavailable("SoundCloud turned down the client ID from the settings (${response.code})")
-                response.code == 404 -> throw ModuleUnavailable("SoundCloud doesn't have it (404)")
-                else -> throw ModuleUnavailable("SoundCloud answered ${response.code}")
+                    throw ModuleUnavailable("SoundCloud turned down the client ID from the settings ($what, ${response.code})")
+                response.code == 404 -> throw ModuleUnavailable("SoundCloud has no $what (404)")
+                else -> throw ModuleUnavailable("SoundCloud answered ${response.code} for $what")
             }
         }
     }
