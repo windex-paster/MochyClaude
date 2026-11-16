@@ -151,12 +151,12 @@ class SoundCloudModuleTest {
 
     @Test
     fun script_and_key_patterns_take_other_markup() {
+        // another attribute order, upper-case and single-quoted, and a link without its scheme; a script off sndcdn.com is left out
         assertEquals(
-            listOf("https://a-v2.sndcdn.com/assets/3.js", "https://a-v2.sndcdn.com/assets/4.js"),
+            listOf("https://a-v2.sndcdn.com/assets/3.js"),
             SoundCloudModule.extractScriptUrls(
-                """<script crossorigin async SRC='//a-v2.sndcdn.com/assets/3.js'></script><script defer src="/assets/4.js?x=1"></script>""",
-            ).map { it.substringBefore('?') }.map { it.replace("https://soundcloud.com/assets", "https://a-v2.sndcdn.com/assets") }
-                .let { listOf(it[0], "https://a-v2.sndcdn.com/assets/4.js") },
+                """<script crossorigin async SRC='//a-v2.sndcdn.com/assets/3.js'></script><script defer src="/assets/4.js"></script>""",
+            ),
         )
         assertEquals(clientId, SoundCloudModule.extractClientId("""{"client_id":"$clientId"}"""))
         assertEquals(clientId, SoundCloudModule.extractClientId("""a=1;client_id='$clientId'"""))
