@@ -24,13 +24,26 @@ private val Inter = FontFamily(
     Font(R.font.inter_bold, FontWeight.Bold)
 )
 
+/** the serif look of Claude's chat: Lora (open licence, OFL), not Anthropic's own proprietary typeface */
+val ClaudeSerif = FontFamily(
+    Font(R.font.claude_serif_regular, FontWeight.Normal),
+    Font(R.font.claude_serif_medium, FontWeight.Medium),
+    Font(R.font.claude_serif_semibold, FontWeight.SemiBold),
+    Font(R.font.claude_serif_bold, FontWeight.Bold),
+)
+
+/** the typeface picked in customisation settings; null is inter */
+object UserFont {
+    var family: FontFamily? by mutableStateOf(null)
+}
+
 /** a look module's font, standing in for inter across the app while that look is on; null is inter */
 object LookFont {
     var family: FontFamily? by mutableStateOf(null)
 }
 
 // read through a state, so text set in it follows a look's font turning on or off
-val InterFontFamily: FontFamily get() = LookFont.family ?: Inter
+val InterFontFamily: FontFamily get() = LookFont.family ?: UserFont.family ?: Inter
 
 private val GlobalFontWeight = FontWeight.SemiBold
 private val GlobalLetterSpacing = (-0.05).em

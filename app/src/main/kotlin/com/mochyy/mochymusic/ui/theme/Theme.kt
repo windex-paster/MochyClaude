@@ -94,7 +94,13 @@ fun MochyTheme(
         }
     }
 
-    val font = InterFontFamily
+    val (appFont) = com.mochyy.mochymusic.utils.rememberEnumPreference(
+        com.mochyy.mochymusic.constants.AppFontKey,
+        defaultValue = com.mochyy.mochymusic.constants.AppFont.INTER,
+    )
+    val chosen = if (appFont == com.mochyy.mochymusic.constants.AppFont.CLAUDE) ClaudeSerif else null
+    androidx.compose.runtime.SideEffect { UserFont.family = chosen }
+    val font = LookFont.family ?: chosen ?: InterFontFamily
     val typography = remember(font) { appTypography(font) }
     MaterialTheme(
         colorScheme = colorScheme,

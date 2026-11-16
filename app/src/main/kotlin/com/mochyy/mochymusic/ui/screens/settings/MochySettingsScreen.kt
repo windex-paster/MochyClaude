@@ -16,6 +16,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
@@ -521,62 +522,74 @@ fun MochySettingsScreen(navController: NavController, pane: SettingsPane? = null
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // Separate Bubble Pills for Categories (No outlines, individually bubble-wrapped)
+                    // the categories in grouped cards, a coloured tile and a chevron to a row, a hairline between rows
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(22.dp)
                     ) {
                         // in the order of the design: sound first, then how the app acts and looks, then the rest
-                        CategoryBubble(
-                            title = stringResource(R.string.settings_audio_lab_category),
-                            iconRes = R.drawable.equalizer,
-                            selected = selected == "audio_lab",
-                            onClick = { open("audio_lab") }
-                        )
+                        SettingsGroup {
+                            SettingsRow(
+                                title = stringResource(R.string.settings_audio_lab_category),
+                                iconRes = R.drawable.equalizer,
+                                tile = Color(0xFFFF453A),
+                                selected = selected == "audio_lab",
+                                onClick = { open("audio_lab") }
+                            )
+                            SettingsRow(
+                                title = stringResource(R.string.settings_app_behaviour),
+                                iconRes = R.drawable.settings,
+                                tile = Color(0xFF8E8E93),
+                                selected = selected == "general_settings",
+                                onClick = { open("general_settings") }
+                            )
+                            SettingsRow(
+                                title = stringResource(R.string.settings_customisation_category),
+                                iconRes = R.drawable.palette,
+                                tile = Color(0xFFAF52DE),
+                                selected = selected == "customisation_settings",
+                                onClick = { open("customisation_settings") },
+                                last = true
+                            )
+                        }
 
-                        CategoryBubble(
-                            title = stringResource(R.string.settings_app_behaviour),
-                            iconRes = R.drawable.settings,
-                            selected = selected == "general_settings",
-                            onClick = { open("general_settings") }
-                        )
+                        SettingsGroup {
+                            SettingsRow(
+                                title = stringResource(R.string.storage),
+                                iconRes = R.drawable.storage,
+                                tile = Color(0xFF0A84FF),
+                                selected = selected == "storage_settings",
+                                onClick = { open("storage_settings") }
+                            )
+                            SettingsRow(
+                                title = stringResource(R.string.integrations),
+                                iconRes = R.drawable.integration,
+                                tile = Color(0xFF30D158),
+                                selected = selected == IntegrationsRoute,
+                                onClick = { open(IntegrationsRoute) }
+                            )
+                            SettingsRow(
+                                title = stringResource(R.string.devices_title),
+                                iconRes = R.drawable.cast_connected,
+                                tile = Color(0xFF64D2FF),
+                                selected = false,
+                                onClick = { open(com.mochyy.mochymusic.ui.screens.devices.DeviceIntegrationRoute) },
+                                last = true
+                            )
+                        }
 
-                        CategoryBubble(
-                            title = stringResource(R.string.settings_customisation_category),
-                            iconRes = R.drawable.palette,
-                            selected = selected == "customisation_settings",
-                            onClick = { open("customisation_settings") }
-                        )
-
-                        CategoryBubble(
-                            title = stringResource(R.string.storage),
-                            iconRes = R.drawable.storage,
-                            selected = selected == "storage_settings",
-                            onClick = { open("storage_settings") }
-                        )
-
-                        CategoryBubble(
-                            title = stringResource(R.string.integrations),
-                            iconRes = R.drawable.integration,
-                            selected = selected == IntegrationsRoute,
-                            onClick = { open(IntegrationsRoute) }
-                        )
-
-                        CategoryBubble(
-                            title = stringResource(R.string.devices_title),
-                            iconRes = R.drawable.cast_connected,
-                            selected = false,
-                            onClick = { open(com.mochyy.mochymusic.ui.screens.devices.DeviceIntegrationRoute) }
-                        )
-
-                        CategoryBubble(
-                            title = stringResource(R.string.settings_modules_category),
-                            iconRes = R.drawable.library_add,
-                            selected = selected == "modules",
-                            onClick = { open("modules") }
-                        )
+                        SettingsGroup {
+                            SettingsRow(
+                                title = stringResource(R.string.settings_modules_category),
+                                iconRes = R.drawable.library_add,
+                                tile = Color(0xFFFF9F0A),
+                                selected = selected == "modules",
+                                onClick = { open("modules") },
+                                last = true
+                            )
+                        }
 
                         // pages the modules that are on bring to settings, right under modules
                         com.mochyy.mochymusic.ui.screens.settings.modules.ModuleSettingsPages(open = open, selected = selected)
@@ -706,6 +719,85 @@ internal fun CategoryBubble(
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 17.sp,
                 color = Color.White,
+            )
+        }
+    }
+}
+
+
+/** a card holding a group of [SettingsRow]s, as one rounded block */
+@Composable
+internal fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(BubbleColor),
+        content = content,
+    )
+}
+
+/**
+ * One row of a [SettingsGroup]: a rounded-square [tile] colour with its white icon, the title, a
+ * chevron at the end, and a hairline under it that starts at the title unless it is the [last] row.
+ */
+@Composable
+internal fun SettingsRow(
+    title: String,
+    iconRes: Int,
+    tile: Color,
+    onClick: () -> Unit,
+    // lit while its page is open beside the list on a wide screen
+    selected: Boolean = false,
+    last: Boolean = false,
+) {
+    Column(modifier = Modifier.background(if (selected) SelectedBubbleColor else Color.Transparent)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(58.dp)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 16.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(tile),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Text(
+                text = title,
+                fontFamily = InterFontFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 17.sp,
+                color = Color.White,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+            )
+            Icon(
+                painter = painterResource(R.drawable.chevron_right_px),
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.4f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        if (!last) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 64.dp)
+                    .height(0.5.dp)
+                    .background(Color.White.copy(alpha = 0.1f))
             )
         }
     }
