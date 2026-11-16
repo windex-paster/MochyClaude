@@ -1946,8 +1946,9 @@ class MusicService :
         } ?: return
         val duration = song?.song?.duration?.takeIf { it != -1 }
             ?: mediaMetadata.duration.takeIf { it != -1 }
-            ?: (playbackData?.videoDetails ?: YTPlayerUtils.playerResponseForMetadata(mediaId)
-                .getOrNull()?.videoDetails)?.lengthSeconds?.toInt()
+            ?: (if (com.mochyy.mochymusic.modules.BrowsedIds.isBrowsed(mediaId)) null
+                else (playbackData?.videoDetails ?: YTPlayerUtils.playerResponseForMetadata(mediaId)
+                    .getOrNull()?.videoDetails)?.lengthSeconds?.toInt())
             ?: -1
         database.query {
             if (song == null) insert(mediaMetadata.copy(duration = duration))
@@ -1965,6 +1966,8 @@ class MusicService :
                 }
             }
         }
+        // a song from SoundCloud has no YouTube radio to ask for
+        if (com.mochyy.mochymusic.modules.BrowsedIds.isBrowsed(mediaId)) return
         if (!database.hasRelatedSongs(mediaId)) {
             val relatedEndpoint =
                 YouTube.next(WatchEndpoint(videoId = mediaId)).getOrNull()?.relatedEndpoint
@@ -5070,6 +5073,10 @@ class MusicService :
         // offline: no provider is asked; the song plays if it's cached, and is skipped if not.
         // An imported file is never looked for online, even one whose file has gone missing.
         if (com.mochyy.mochymusic.utils.OfflineMode.isOn || mediaId.startsWith("LOCAL_")) return null
+        // a song from a source's own search (SoundCloud) is asked of that source by its own id, whatever the provider order says
+        com.mochyy.mochymusic.modules.BrowsedIds.parse(mediaId)?.let { (moduleId, sourceId) ->
+            return browsedStream(mediaId, moduleId, sourceId)
+        }
         forcedRoutes[mediaId]?.let { forced ->
             if (forced.providerId == com.mochyy.mochymusic.modules.SourceModules.YouTubeId) return youTubeRoute(mediaId)
             forcedModuleStream(mediaId, forced)?.let { return it }
@@ -5100,6 +5107,22 @@ class MusicService :
                     else -> throw com.mochyy.mochymusic.playback.custom.NoProviderException("every provider failed on it")
                 }
             }
+        }
+    }
+
+    private suspend fun browsedStream(
+        mediaId: String,
+        moduleId: String,
+        sourceId: String,
+    ): com.mochyy.mochymusic.playback.custom.CustomStreamResult {
+        val module = sourceModules.browsable(moduleId)
+            ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("$moduleId isn't installed")
+        return when (val result = module.streamFor(sourceId, sourceModules.picks(moduleId))) {
+            is com.mochyy.mochymusic.module.ResolveResult.Found -> moduleStream(mediaId, module, result.stream)
+            is com.mochyy.mochymusic.module.ResolveResult.NotFound ->
+                throw com.mochyy.mochymusic.playback.custom.NoProviderException(result.reason)
+            is com.mochyy.mochymusic.module.ResolveResult.Unavailable ->
+                throw com.mochyy.mochymusic.playback.custom.NoProviderException(result.reason)
         }
     }
 

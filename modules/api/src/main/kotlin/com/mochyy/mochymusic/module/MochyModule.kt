@@ -350,3 +350,33 @@ object LookSetting {
     /** the glass of the nav bar and mini player: FROSTED, or MODULE for the glass shader the look brings */
     const val BOTTOM_BAR = "bottomBar"
 }
+
+/** one song of a service's own search, as the search page lists it; [id] is the service's, handed back to [BrowsableSourceModule.streamFor] */
+data class SearchHit(
+    val id: String,
+    val title: String,
+    val artist: String,
+    val durationMs: Long? = null,
+    /** a link to the cover, null when the service has none */
+    val artworkUrl: String? = null,
+    /** the song's page on the service, for sharing */
+    val pageUrl: String? = null,
+)
+
+/**
+ * A source people can search and play from directly, as an aggregator: its own results, its own
+ * ids, no matching against another service. The search page shows one chip per module like this.
+ */
+interface BrowsableSourceModule : SourceModule {
+    /** the chip's name on the search page ("SoundCloud") */
+    val searchLabel: String
+
+    /** the service's own search for [query]; empty when it finds nothing, [ModuleUnavailable] when it can't be asked */
+    suspend fun search(query: String, limit: Int = 30): List<SearchHit>
+
+    /** a stream for a song of this service's own, by the [SearchHit.id] its search gave */
+    suspend fun streamFor(id: String, picks: Map<String, String>): ResolveResult
+}
+
+/** a service that couldn't be asked: offline, blocked, or its keys gone stale */
+class ModuleUnavailable(message: String) : Exception(message)

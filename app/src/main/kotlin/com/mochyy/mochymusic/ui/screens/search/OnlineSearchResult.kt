@@ -91,6 +91,8 @@ import com.mochyy.mochymusic.extensions.toMediaItem
 import com.mochyy.mochymusic.extensions.togglePlayPause
 import com.mochyy.mochymusic.models.toMediaMetadata
 import com.mochyy.mochymusic.playback.queues.YouTubeQueue
+import com.mochyy.mochymusic.modules.BrowsedIds
+import com.mochyy.mochymusic.playback.queues.ListQueue
 import com.mochyy.mochymusic.ui.component.GlassState
 import com.mochyy.mochymusic.ui.component.LocalMenuState
 import com.mochyy.mochymusic.ui.component.RoundedHighlight
@@ -139,6 +141,9 @@ fun OnlineSearchResult(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
     val searchFilter by viewModel.filter.collectAsState()
+    // null is YouTube Music, otherwise the id of a source with its own search (SoundCloud)
+    var sourceId by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(sourceId) { sourceId?.let(viewModel::loadSource) }
     val summary = viewModel.summaryPage
     val itemsPage by remember(searchFilter) {
         derivedStateOf { searchFilter?.value?.let { viewModel.viewStateMap[it] } }
@@ -255,7 +260,32 @@ fun OnlineSearchResult(
                     bottom = bottomInset + 24.dp,
                 ),
             ) {
-                if (searchFilter == null) {
+                val activeSource = sourceId
+                if (activeSource != null) {
+                    val module = viewModel.source(activeSource)
+                    sourceResultItems(
+                        state = viewModel.sourceStates[activeSource],
+                        activeMediaId = mediaMetadata?.id,
+                        mediaIdOf = { hit -> BrowsedIds.mediaId(activeSource, hit.id) },
+                        onClick = { index, hit ->
+                            val done = viewModel.sourceStates[activeSource] as? SourceSearchState.Done
+                            if (module != null && done != null) {
+                                if (BrowsedIds.mediaId(activeSource, hit.id) == mediaMetadata?.id) {
+                                    playerConnection.player.togglePlayPause()
+                                } else {
+                                    // the results play as a queue from the one pressed, each asked of its own source by its id
+                                    playerConnection.playQueue(
+                                        ListQueue(
+                                            title = module.searchLabel,
+                                            items = done.hits.map { BrowsedIds.metadataOf(activeSource, it).toMediaItem() },
+                                            startIndex = index,
+                                        ),
+                                    )
+                                }
+                            }
+                        },
+                    )
+                } else if (searchFilter == null) {
 
                     val page = summary
                     if (page == null) {
@@ -375,10 +405,12 @@ fun OnlineSearchResult(
                     )
                     .padding(top = statusTop + SearchTopClearance - 4.dp, bottom = 14.dp),
             ) {
-                SearchCategoryRow(
-                    categories = SearchCategories.map { stringResource(it.first) },
+                SourceAndCategoryRows(
+                    sourceLabels = viewModel.sources.map { it.searchLabel },
+                    sourceIndex = sourceId?.let { id -> viewModel.sources.indexOfFirst { it.info.id == id } }?.takeIf { it >= 0 },
+                    onSource = { index -> sourceId = index?.let { viewModel.sources[it].info.id } },
                     selectedIndex = selectedIndex,
-                    onSelect = { index -> viewModel.filter.value = SearchCategories[index].second },
+                    onCategory = { index -> viewModel.filter.value = SearchCategories[index].second },
                 )
             }
         } else SearchGlassTopBar(
@@ -390,10 +422,12 @@ fun OnlineSearchResult(
                 SearchAvatar(imageUrl = profilePicStr.ifBlank { null }, onClick = { navController.navigateToTab("settings") })
             },
             below = {
-                SearchCategoryRow(
-                    categories = SearchCategories.map { stringResource(it.first) },
+                SourceAndCategoryRows(
+                    sourceLabels = viewModel.sources.map { it.searchLabel },
+                    sourceIndex = sourceId?.let { id -> viewModel.sources.indexOfFirst { it.info.id == id } }?.takeIf { it >= 0 },
+                    onSource = { index -> sourceId = index?.let { viewModel.sources[it].info.id } },
                     selectedIndex = selectedIndex,
-                    onSelect = { index -> viewModel.filter.value = SearchCategories[index].second },
+                    onCategory = { index -> viewModel.filter.value = SearchCategories[index].second },
                 )
             },
         ) {
@@ -415,6 +449,37 @@ fun OnlineSearchResult(
                             ) { navController.navigateUp() },
                     )
                 },
+            )
+        }
+    }
+}
+
+/**
+ * The chips over the results: where to search (YouTube Music, then each source with its own search),
+ * and under them the kinds of YouTube result, which only YouTube has.
+ */
+@Composable
+private fun SourceAndCategoryRows(
+    sourceLabels: List<String>,
+    sourceIndex: Int?,
+    onSource: (Int?) -> Unit,
+    selectedIndex: Int,
+    onCategory: (Int) -> Unit,
+) {
+    Column {
+        if (sourceLabels.isNotEmpty()) {
+            SearchCategoryRow(
+                categories = listOf("YouTube Music") + sourceLabels,
+                selectedIndex = (sourceIndex ?: -1) + 1,
+                onSelect = { index -> onSource(if (index == 0) null else index - 1) },
+            )
+        }
+        if (sourceIndex == null) {
+            if (sourceLabels.isNotEmpty()) Spacer(modifier = Modifier.height(8.dp))
+            SearchCategoryRow(
+                categories = SearchCategories.map { stringResource(it.first) },
+                selectedIndex = selectedIndex,
+                onSelect = onCategory,
             )
         }
     }

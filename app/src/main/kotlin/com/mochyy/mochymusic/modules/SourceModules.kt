@@ -205,6 +205,13 @@ class SourceModules @Inject constructor(
 
     fun isEnabled(id: String): Boolean = registry.isEnabled(id)
 
+    /** the sources the search page can open as a chip of their own, in the order they were installed; they need not be in the provider order */
+    fun browsable(): List<com.mochyy.mochymusic.module.BrowsableSourceModule> =
+        registry.all().filterIsInstance<com.mochyy.mochymusic.module.BrowsableSourceModule>()
+
+    fun browsable(id: String): com.mochyy.mochymusic.module.BrowsableSourceModule? =
+        browsable().firstOrNull { it.info.id == id }
+
     private val _youTubeEnabled = MutableStateFlow(isEnabled(YouTubeId))
 
     /** youtube music isn't a module, so it has no entry: the settings watch its switch here */
