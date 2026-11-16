@@ -127,6 +127,7 @@ private enum class CustomiseSection(@StringRes val titleRes: Int, val keys: List
     BLUR(R.string.appearance_blur, listOf("Blur", "Progressive blur", "Blur quality", "Blur strength"), "blur glass frosted progressive flat quality low high strength px"),
     ELEMENT_BLUR(R.string.customise_element_blur, listOf("Element blur"), "element blur lyrics lines cover zoom titles menus page swipes"),
     ANIMATION(R.string.appearance_animation, listOf("Animation", "Animation speed"), "animation speed motion transitions off faster slower"),
+    FONT(R.string.customise_font, listOf("Font"), "font typeface text claude serif inter"),
     LYRICS(R.string.appearance_lyrics_animation, listOf("Lyrics animation"), "lyrics animation style 1 2 boring plain shader glow wave"),
     TOP_BAR(R.string.customise_top_bar, listOf(TopBarHighlightKey), "top bar status bar player clock battery icons hide"),
     BOTTOM_BAR(R.string.customise_bottom_bar, listOf(BottomBarHighlightKey), "bottom bar navigation bar nav buttons gesture handle back home recents player hide"),
@@ -242,6 +243,7 @@ private fun CustomiseSectionContent(section: CustomiseSection) {
         CustomiseSection.BLUR -> BlurSection()
         CustomiseSection.ELEMENT_BLUR -> ElementBlurSection()
         CustomiseSection.ANIMATION -> AnimationSection()
+        CustomiseSection.FONT -> FontSection()
         CustomiseSection.LYRICS -> LyricsStyleSection(modifier = pagerBleed)
         CustomiseSection.TOP_BAR -> TopBarSection()
         CustomiseSection.BOTTOM_BAR -> BottomBarSection()

@@ -30,6 +30,8 @@ import com.mochyy.mochymusic.module.applemusic.AppleMusicModule
 import com.mochyy.mochymusic.module.bridge.BridgedModule
 import com.mochyy.mochymusic.module.jiosaavn.JioSaavnModule
 import com.mochyy.mochymusic.module.monochrome.MonochromeModule
+import com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
+import com.mochyy.mochymusic.module.yandex.YandexMusicModule
 import com.mochyy.mochymusic.modules.code.CodeModules
 import com.mochyy.mochymusic.modules.local.LocalModule
 import com.mochyy.mochymusic.modules.skin.ActiveSkin
@@ -551,7 +553,7 @@ class ModuleRegistry @Inject constructor(
     // ---- loading --------------------------------------------------------------------------------
 
     private fun load(): List<Pair<MochyModule, ModuleOrigin>> {
-        val builtIn = listOf<MochyModule>(AppleMusicModule(), MonochromeModule(), JioSaavnModule()).map { it to ModuleOrigin.BuiltIn }
+        val builtIn = listOf<MochyModule>(AppleMusicModule(), MonochromeModule(), JioSaavnModule(), SoundCloudModule(), YandexMusicModule()).map { it to ModuleOrigin.BuiltIn }
         val apps = discover()
         val savedCode = savedCodeModules()
         CodeModules.tidy(context, savedCode.map { it.optString("folder") }.toSet())

@@ -153,6 +153,9 @@
     <string name="customise_nothing_matches">Nothing here matches “%1$s”. Try another word.</string>
     <string name="customise_reset">Reset to default</string>
     <string name="customise_cover_rounding">Cover\nrounding</string>
+    <string name="settings_check_update">Check update</string>
+    <string name="customise_font">Font</string>
+    <string name="customise_font_claude_note">A serif in the spirit of the Claude chat (Lora, open licence)</string>
     <string name="customise_icons">Icons</string>
     <string name="customise_icons_caption">Your home screen can take a few seconds to show the new icon. Opening Mochy from it starts from that icon too.</string>
     <string name="app_icon_family_mark">Mochy</string>
