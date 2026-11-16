@@ -42,6 +42,7 @@ include(":modules:applemusic")
 include(":modules:monochrome")
 include(":modules:jiosaavn")
 include(":modules:soundcloud")
+include(":modules:yandex")
 
 
 // local newpipe extractor
