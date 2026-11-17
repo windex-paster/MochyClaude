@@ -3,6 +3,7 @@
 package com.mochyy.mochymusic.ui.screens.equalizer
 
 import androidx.compose.animation.AnimatedContent
+import com.mochyy.mochymusic.ui.component.bottomClearance
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -133,7 +134,7 @@ fun EqualizerScreen(
             Spacer(Modifier.height(18.dp))
             Output(eq = eq, headroom = viewModel.autoHeadroom(eq), viewModel = viewModel)
         }
-        Spacer(Modifier.height(120.dp))
+        Spacer(Modifier.height(bottomClearance()))
     }
 
     if (savingPreset) {

@@ -3,6 +3,7 @@
 package com.mochyy.mochymusic.ui.screens.settings.modules
 
 import android.content.ActivityNotFoundException
+import com.mochyy.mochymusic.ui.component.bottomClearance
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -107,7 +108,7 @@ fun ModuleBrowserScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(Color.Black),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = top + 12.dp, bottom = 140.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = top + 12.dp, bottom = bottomClearance()),
     ) {
         item(key = "header", contentType = "header") {
             BrowserHeader(person, onBack = { navController.navigateUp() })

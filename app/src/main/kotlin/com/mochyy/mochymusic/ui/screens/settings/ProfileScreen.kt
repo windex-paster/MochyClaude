@@ -8,6 +8,7 @@
 package com.mochyy.mochymusic.ui.screens.settings
 
 import com.mochyy.mochymusic.ui.component.BlurEffectCache
+import com.mochyy.mochymusic.ui.component.bottomClearance
 import com.mochyy.mochymusic.ui.component.rememberDeviceTilt
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -793,7 +794,7 @@ fun ProfileScreen(navController: NavController) {
                         Spacer(Modifier.height(28.dp))
                         Text(stringResource(R.string.profile_settings_title), style = PageTitle.copy(fontSize = 15.sp), modifier = Modifier.padding(start = 2.dp, bottom = 10.dp))
                         OpenSettingsRow(onClick = { navController.navigate("mochy_settings") })
-                        Spacer(Modifier.height(180.dp))
+                        Spacer(Modifier.height(bottomClearance()))
                     }
                     },
                 )

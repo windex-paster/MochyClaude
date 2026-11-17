@@ -8,6 +8,7 @@
 package com.mochyy.mochymusic.ui.screens.profile
 
 import androidx.compose.foundation.background
+import com.mochyy.mochymusic.ui.component.bottomClearance
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -220,7 +221,7 @@ internal fun UserProfilePage(
         Spacer(Modifier.height(24.dp))
         ArtistsSection(state, viewModel, navController)
         // room to scroll the last row clear of the mini player and the nav bar
-        Spacer(Modifier.height(180.dp))
+        Spacer(Modifier.height(bottomClearance()))
     }
 }
 

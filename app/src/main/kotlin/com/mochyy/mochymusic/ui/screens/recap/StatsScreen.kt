@@ -8,6 +8,7 @@
 package com.mochyy.mochymusic.ui.screens.recap
 
 import androidx.compose.animation.AnimatedVisibility
+import com.mochyy.mochymusic.ui.component.bottomClearance
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -208,7 +209,7 @@ fun StatsScreen(navController: NavController) {
         Box(modifier = Modifier.fillMaxSize().glassRoot(glassState, isActive = { collapse > 0f })) {
             LazyColumn(
                 state = listState,
-                contentPadding = PaddingValues(top = topInset + 82.dp, bottom = 200.dp),
+                contentPadding = PaddingValues(top = topInset + 82.dp, bottom = bottomClearance()),
                 modifier = Modifier.fillMaxSize(),
             ) {
                 item(key = "title") {
