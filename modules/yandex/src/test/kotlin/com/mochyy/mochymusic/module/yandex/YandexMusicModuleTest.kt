@@ -42,4 +42,21 @@ class YandexMusicModuleTest {
         assertEquals("A, B", hits[0].artist)
         assertEquals("https://avatars.yandex.net/get-music-content/1/x/400x400", hits[0].artworkUrl)
     }
+
+    @Test
+    fun a_pasted_address_or_quoted_token_is_reduced_to_the_token() {
+        val token = "y0__wgBEMebjJMHGN74BiCEsLTmGTC6m9uyAbCdEf"
+        assertEquals(token, YandexMusicModule.cleanToken(token))
+        assertEquals(token, YandexMusicModule.cleanToken("  OAuth $token\n"))
+        assertEquals(token, YandexMusicModule.cleanToken("\"$token\""))
+        assertEquals(token, YandexMusicModule.cleanToken("https://music.yandex.ru/#access_token=$token&token_type=bearer&expires_in=31535645"))
+        assertNull(YandexMusicModule.cleanToken("short"))
+        assertNull(YandexMusicModule.cleanToken(null))
+    }
+
+    @Test
+    fun the_reason_is_read_from_what_yandex_sent() {
+        assertEquals("session-expired", YandexMusicModule.reasonIn("""{"error":{"name":"session-expired","message":"session-expired"}}"""))
+        assertNull(YandexMusicModule.reasonIn("<html></html>"))
+    }
 }

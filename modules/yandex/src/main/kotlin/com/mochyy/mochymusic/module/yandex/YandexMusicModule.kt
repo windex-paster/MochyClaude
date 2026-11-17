@@ -68,7 +68,7 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
     )
 
     override fun onFields(values: Map<String, String>) {
-        token = values[FieldToken]?.trim()?.removePrefix("OAuth ")?.takeIf { it.length >= 20 }
+        token = cleanToken(values[FieldToken])
     }
 
     override fun attach(host: ModuleHost) {
@@ -188,6 +188,23 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
         // the service's own signing salt for plain file addresses, as the unofficial clients publish it
         private const val SignSalt = "XGRlBW9FXlekgbPrRHuSiA"
 
+        /**
+         * What was pasted, reduced to the token: people paste the whole address Yandex sent them to
+         * (…#access_token=y0_…&token_type=bearer&expires_in=…), quote it, or put "OAuth " before it.
+         */
+        internal fun cleanToken(raw: String?): String? {
+            var t = raw?.trim().orEmpty()
+            Regex("access_token=([^&\\s]+)").find(t)?.let { t = it.groupValues[1] }
+            t = t.trim().trim('"', '\'', '`').removePrefix("OAuth ").removePrefix("Bearer ").trim()
+            return t.takeIf { it.length >= 20 && t.none { c -> c.isWhitespace() } }
+        }
+
+        /** a short piece of what Yandex answered with, so a refusal says why */
+        internal fun reasonIn(body: String): String? {
+            val text = Regex("\"(?:message|name|error_description|error)\"\\s*:\\s*\"([^\"]{1,120})\"").find(body)?.groupValues?.get(1)
+            return (text ?: body.trim().takeIf { it.isNotEmpty() && !it.startsWith("<") })?.take(120)
+        }
+
         /** builds the address from the XML Yandex answers a file's info link with: host, path, ts and s */
         internal fun directLink(xml: String): String? {
             fun tag(name: String) = Regex("<$name>([^<]*)</$name>").find(xml)?.groupValues?.get(1)
@@ -257,7 +274,10 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
         }
         return when {
             response.ok -> response.text
-            response.code == 401 || response.code == 403 -> throw ModuleUnavailable("Yandex turned down the token ($what, ${response.code})")
+            response.code == 401 || response.code == 403 -> {
+                val why = reasonIn(response.text)?.let { ": $it" }.orEmpty()
+                throw ModuleUnavailable("Yandex turned down the token ($what, ${response.code}$why). It may be cut short, expired, or from another app; get a new one")
+            }
             response.code == 404 -> throw ModuleUnavailable("Yandex has no $what (404)")
             else -> throw ModuleUnavailable("Yandex answered ${response.code} for $what")
         }
