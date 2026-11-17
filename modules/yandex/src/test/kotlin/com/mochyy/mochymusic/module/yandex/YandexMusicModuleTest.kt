@@ -59,4 +59,21 @@ class YandexMusicModuleTest {
         assertEquals("session-expired", YandexMusicModule.reasonIn("""{"error":{"name":"session-expired","message":"session-expired"}}"""))
         assertNull(YandexMusicModule.reasonIn("<html></html>"))
     }
+
+    @Test
+    fun the_newer_answer_gives_a_plain_file_and_never_an_encrypted_one() {
+        val ok = """{"result":{"downloadInfo":{"url":"https://x/y.m4a","codec":"aac-mp4","bitrate":192,"transport":"raw"}}}"""
+        val file = YandexMusicModule().parseFileInfo(ok)
+        assertEquals("https://x/y.m4a", file.url)
+        assertEquals("aac-mp4", file.codec)
+        val enc = """{"result":{"downloadInfo":{"url":"https://x/y","codec":"flac-mp4","transport":"encraw","key":"00"}}}"""
+        assertNull(runCatching { YandexMusicModule().parseFileInfo(enc) }.getOrNull())
+    }
+
+    @Test
+    fun the_file_info_sign_is_a_base64_hmac_without_its_padding() {
+        val sign = YandexMusicModule.fileInfoSign(1700000000L, "123", "hq", listOf("aac", "mp3"), "raw")
+        assertEquals(43, sign.length)
+        assertEquals(sign, YandexMusicModule.fileInfoSign(1700000000L, "123", "hq", listOf("aac", "mp3"), "raw"))
+    }
 }

@@ -151,20 +151,72 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
 
     private fun streamOrNull(id: String): SourceStream? {
         if (token == null) throw ModuleUnavailable("Put your Yandex Music token in this module's settings")
-        val listing = apiGet("the file list") { "$Api/tracks/${enc(id)}/download-info" }
-        val choice = pickFile(listing) ?: return null
-        val xml = apiGet("the file's address") { choice.infoUrl }
-        val url = directLink(xml) ?: throw ModuleUnavailable("Yandex sent an address this module couldn't read")
-        return SourceStream(
-            url = url,
-            format = StreamFormat.Progressive,
-            headers = emptyMap(),
-            sourceLabel = "Yandex Music",
-            qualityLabel = "${choice.codec} ${choice.bitrate} kbps",
-            matched = MatchedTrack(id = id, title = "", artist = "", album = null, durationMs = null, confidence = 1f),
-            codec = choice.codec.uppercase(),
-        )
+        // the older list of files first; Yandex keeps changing what it still answers there
+        var oldNote = ""
+        try {
+            val listing = apiGet("the file list") { "$Api/tracks/${enc(id)}/download-info" }
+            val choice = pickFile(listing)
+            if (choice != null) {
+                val xml = apiGet("the file's address") { choice.infoUrl }
+                val url = directLink(xml)
+                if (url != null) return streamOf(id, url, "${choice.codec} ${choice.bitrate} kbps", choice.codec)
+                oldNote = "its address was unreadable"
+            } else {
+                oldNote = "no mp3 or aac in its list (${codecsIn(listing)})"
+            }
+        } catch (e: ModuleUnavailable) {
+            oldNote = e.message ?: "it didn't answer"
+        }
+        // the newer one: asks for plain ("raw") files only, never the encrypted kind
+        val fresh = try {
+            fileInfo(id)
+        } catch (e: ModuleUnavailable) {
+            throw ModuleUnavailable("Yandex gave no plain file. Old way: $oldNote. New way: ${e.message}")
+        }
+        return streamOf(id, fresh.url, "${fresh.codec} ${fresh.bitrate} kbps".replace(" 0 kbps", ""), fresh.codec)
     }
+
+    private fun streamOf(id: String, url: String, quality: String, codec: String) = SourceStream(
+        url = url,
+        format = StreamFormat.Progressive,
+        headers = emptyMap(),
+        sourceLabel = "Yandex Music",
+        qualityLabel = quality,
+        matched = MatchedTrack(id = id, title = "", artist = "", album = null, durationMs = null, confidence = 1f),
+        codec = codec.uppercase(),
+    )
+
+    internal class FreshFile(val url: String, val codec: String, val bitrate: Int)
+
+    private fun fileInfo(rawId: String): FreshFile {
+        val trackId = rawId.substringBefore(':')
+        val ts = System.currentTimeMillis() / 1000
+        val codecs = listOf("aac-mp4", "he-aac-mp4", "aac", "he-aac", "mp3")
+        val quality = "hq"
+        val transport = "raw"
+        val sign = fileInfoSign(ts, trackId, quality, codecs, transport)
+        val body = apiGet("the file info", desktop = true) {
+            "$Api/get-file-info?ts=$ts&trackId=${enc(trackId)}&quality=$quality&codecs=${enc(codecs.joinToString(","))}" +
+                "&transports=$transport&sign=${enc(sign)}"
+        }
+        return parseFileInfo(body)
+    }
+
+    internal fun parseFileInfo(body: String): FreshFile {
+        val info = runCatching {
+            json.parseToJsonElement(body).jsonObject["result"]?.jsonObject?.get("downloadInfo") as? JsonObject
+        }.getOrNull() ?: throw ModuleUnavailable("no download info in the answer (${body.take(80)})")
+        val url = info.str("url") ?: (info["urls"] as? JsonArray)?.firstOrNull()?.let { (it as? JsonPrimitive)?.contentOrNull }
+            ?: throw ModuleUnavailable("no address in the answer")
+        val transport = info.str("transport")
+        if (transport != null && transport != "raw") throw ModuleUnavailable("only an encrypted file was offered")
+        return FreshFile(url, info.str("codec") ?: "audio", info.long("bitrate")?.toInt() ?: 0)
+    }
+
+    private fun codecsIn(listing: String): String = runCatching {
+        json.parseToJsonElement(listing).jsonObject["result"]?.jsonArray.orEmpty()
+            .mapNotNull { (it as? JsonObject)?.str("codec") }.joinToString(", ").ifEmpty { "empty" }
+    }.getOrDefault("unreadable")
 
     /** the best plain file: MP3 before AAC, the highest bitrate first */
     internal fun pickFile(listing: String): FileChoice? {
@@ -203,6 +255,16 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
         internal fun reasonIn(body: String): String? {
             val text = Regex("\"(?:message|name|error_description|error)\"\\s*:\\s*\"([^\"]{1,120})\"").find(body)?.groupValues?.get(1)
             return (text ?: body.trim().takeIf { it.isNotEmpty() && !it.startsWith("<") })?.take(120)
+        }
+
+        // the desktop app's signing key for the newer file-info call, as the unofficial clients publish it
+        private const val DesktopKey = "kzqU4XhfCaY6B6JTHODeq5"
+
+        internal fun fileInfoSign(ts: Long, trackId: String, quality: String, codecs: List<String>, transport: String): String {
+            val mac = javax.crypto.Mac.getInstance("HmacSHA256")
+            mac.init(javax.crypto.spec.SecretKeySpec(DesktopKey.toByteArray(), "HmacSHA256"))
+            val message = "$ts$trackId$quality${codecs.joinToString("")}$transport"
+            return java.util.Base64.getEncoder().encodeToString(mac.doFinal(message.toByteArray())).dropLast(1)
         }
 
         /** builds the address from the XML Yandex answers a file's info link with: host, path, ts and s */
@@ -265,10 +327,10 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
 
     // ---- talking to yandex --------------------------------------------------------------------
 
-    private fun apiGet(what: String, urlFor: () -> String): String {
+    private fun apiGet(what: String, desktop: Boolean = false, urlFor: () -> String): String {
         val t = token ?: throw ModuleUnavailable("Put your Yandex Music token in this module's settings")
         val response = try {
-            host.http(HttpRequest(urlFor(), headers = headersFor(t)))
+            host.http(HttpRequest(urlFor(), headers = headersFor(t, desktop)))
         } catch (e: Exception) {
             throw ModuleUnavailable("Yandex didn't answer for $what")
         }
@@ -283,10 +345,10 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
         }
     }
 
-    private fun headersFor(t: String) = mapOf(
+    private fun headersFor(t: String, desktop: Boolean) = mapOf(
         "accept" to "application/json",
         "authorization" to "OAuth $t",
         "user-agent" to "Yandex-Music-API",
-        "x-yandex-music-client" to "YandexMusicAndroid/24023231",
+        "x-yandex-music-client" to if (desktop) "YandexMusicDesktopAppWindows/5.13.2" else "YandexMusicAndroid/24023621",
     )
 }
