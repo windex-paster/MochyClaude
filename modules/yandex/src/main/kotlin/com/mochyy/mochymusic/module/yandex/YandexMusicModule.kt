@@ -15,6 +15,7 @@ import com.mochyy.mochymusic.module.ModuleUnavailable
 import com.mochyy.mochymusic.module.ResolveResult
 import com.mochyy.mochymusic.module.SearchHit
 import com.mochyy.mochymusic.module.SourceStream
+import com.mochyy.mochymusic.module.StreamOption
 import com.mochyy.mochymusic.module.StreamFormat
 import com.mochyy.mochymusic.module.TrackMatcher
 import com.mochyy.mochymusic.module.TrackQuery
@@ -56,6 +57,9 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
 
     @Volatile private var token: String? = null
 
+    // set when Yandex turns the token down, so the module's status says so instead of "Token set"
+    @Volatile private var refusal: String? = null
+
     override val fields = listOf(
         ModuleField(
             id = FieldToken,
@@ -63,12 +67,27 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
             kind = FieldKind.Text,
             hint = "y0_… or AQAA…",
             description = "Your own Yandex Music token. It stays on this phone and is sent only to api.music.yandex.net. " +
-                "How to get one is described in the yandex-music-api project's documentation (search \"yandex-music-api token\").",
+                "How to get one is described in the yandex-music-api project's documentation (search \"yandex-music-api token\"). " +
+                "To see your liked songs, open the Яндекс tab in Search and search for \"likes\" (or \"мне нравится\").",
+        ),
+        ModuleField(
+            id = FieldQuality,
+            label = "Quality",
+            kind = FieldKind.Select,
+            default = QualityBest,
+            options = listOf(
+                StreamOption(QualityBest, "Best", "The highest quality plain file Yandex offers"),
+                StreamOption(QualitySaver, "Data saver", "Smaller files for slow or limited internet"),
+            ),
         ),
     )
 
+    @Volatile private var saver = false
+
     override fun onFields(values: Map<String, String>) {
         token = cleanToken(values[FieldToken])
+        saver = values[FieldQuality] == QualitySaver
+        refusal = null
     }
 
     override fun attach(host: ModuleHost) {
@@ -76,7 +95,11 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
     }
 
     override fun accountState(): AccountState =
-        if (token == null) AccountState.SignedOut else AccountState.SignedIn("Token set")
+        when {
+            token == null -> AccountState.SignedOut
+            refusal != null -> AccountState.Expired("Token refused, get a new one")
+            else -> AccountState.SignedIn("Token set")
+        }
 
     override suspend fun verifyAccount(): AccountState {
         if (token == null) return AccountState.SignedOut
@@ -100,9 +123,40 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
     override suspend fun search(query: String, limit: Int): List<SearchHit> {
         val q = query.trim()
         if (q.isEmpty()) return emptyList()
+        if (q.lowercase() in LikesWords) return likedTracks(limit.coerceAtLeast(100))
         val body = apiGet("the search") { "$Api/search?text=${enc(q)}&type=track&page=0&nocorrect=false" }
         return parseSearch(body).take(limit)
     }
+
+    /** the songs this account has liked, newest first: the ids from the library, then their details in one call */
+    private fun likedTracks(limit: Int): List<SearchHit> {
+        val status = apiGet("the account") { "$Api/account/status" }
+        val uid = runCatching {
+            val account = json.parseToJsonElement(status).jsonObject["result"]?.jsonObject?.get("account")?.jsonObject
+            account?.str("uid") ?: account?.long("uid")?.toString()
+        }.getOrNull() ?: throw ModuleUnavailable("Yandex didn't say whose account this is")
+        val likes = apiGet("your liked songs") { "$Api/users/$uid/likes/tracks" }
+        val ids = parseLikedIds(likes).take(limit)
+        if (ids.isEmpty()) return emptyList()
+        val details = apiGet("the liked songs' details") { "$Api/tracks?track-ids=${enc(ids.joinToString(","))}" }
+        val byId = runCatching {
+            json.parseToJsonElement(details).jsonObject["result"]?.jsonArray.orEmpty()
+                .mapNotNull { (it as? JsonObject)?.let(::hitOf) }
+        }.getOrDefault(emptyList())
+        // keep the order of the likes, not the order the details came back in
+        val order = ids.withIndex().associate { (i, id) -> id.substringBefore(':') to i }
+        return byId.sortedBy { order[it.id.substringBefore(':')] ?: Int.MAX_VALUE }
+    }
+
+    internal fun parseLikedIds(body: String): List<String> = runCatching {
+        json.parseToJsonElement(body).jsonObject["result"]?.jsonObject?.get("library")?.jsonObject?.get("tracks")?.jsonArray.orEmpty()
+            .mapNotNull { e ->
+                val o = e as? JsonObject ?: return@mapNotNull null
+                val id = o.str("id") ?: o.long("id")?.toString() ?: return@mapNotNull null
+                val album = o.str("albumId") ?: o.long("albumId")?.toString()
+                if (album != null) "$id:$album" else id
+            }
+    }.getOrDefault(emptyList())
 
     internal fun parseSearch(body: String): List<SearchHit> {
         val items = runCatching {
@@ -155,7 +209,7 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
         var oldNote = ""
         try {
             val listing = apiGet("the file list") { "$Api/tracks/${enc(id)}/download-info" }
-            val choice = pickFile(listing)
+            val choice = pickFile(listing, saver)
             if (choice != null) {
                 val xml = apiGet("the file's address") { choice.infoUrl }
                 val url = directLink(xml)
@@ -192,7 +246,7 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
         val trackId = rawId.substringBefore(':')
         val ts = System.currentTimeMillis() / 1000
         val codecs = listOf("aac-mp4", "he-aac-mp4", "aac", "he-aac", "mp3")
-        val quality = "hq"
+        val quality = if (saver) "nq" else "hq"
         val transport = "raw"
         val sign = fileInfoSign(ts, trackId, quality, codecs, transport)
         val body = apiGet("the file info", desktop = true) {
@@ -219,7 +273,7 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
     }.getOrDefault("unreadable")
 
     /** the best plain file: MP3 before AAC, the highest bitrate first */
-    internal fun pickFile(listing: String): FileChoice? {
+    internal fun pickFile(listing: String, saver: Boolean = false): FileChoice? {
         val all = runCatching {
             json.parseToJsonElement(listing).jsonObject["result"]?.jsonArray
         }.getOrNull().orEmpty().mapNotNull { e ->
@@ -230,13 +284,19 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
             if (codec != "mp3" && codec != "aac") return@mapNotNull null
             FileChoice(codec, bitrate, url)
         }
-        return all.sortedWith(compareBy<FileChoice>({ if (it.codec == "mp3") 0 else 1 }, { -it.bitrate })).firstOrNull()
+        return all.sortedWith(
+            compareBy<FileChoice>({ if (it.codec == "mp3") 0 else 1 }, { if (saver) it.bitrate else -it.bitrate }),
+        ).firstOrNull()
     }
 
     companion object {
         const val Id = "yandex"
         private const val Api = "https://api.music.yandex.net"
         private const val FieldToken = "token"
+        private const val FieldQuality = "quality"
+        private const val QualityBest = "best"
+        private const val QualitySaver = "saver"
+        private val LikesWords = setOf("likes", "my likes", "liked", "мне нравится", "понравившиеся", "лайки")
         // the service's own signing salt for plain file addresses, as the unofficial clients publish it
         private const val SignSalt = "XGRlBW9FXlekgbPrRHuSiA"
 
@@ -335,8 +395,12 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields {
             throw ModuleUnavailable("Yandex didn't answer for $what")
         }
         return when {
-            response.ok -> response.text
+            response.ok -> {
+                refusal = null
+                response.text
+            }
             response.code == 401 || response.code == 403 -> {
+                refusal = "refused"
                 val why = reasonIn(response.text)?.let { ": $it" }.orEmpty()
                 throw ModuleUnavailable("Yandex turned down the token ($what, ${response.code}$why). It may be cut short, expired, or from another app; get a new one")
             }

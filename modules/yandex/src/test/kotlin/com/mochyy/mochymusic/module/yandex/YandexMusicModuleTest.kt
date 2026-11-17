@@ -76,4 +76,20 @@ class YandexMusicModuleTest {
         assertEquals(43, sign.length)
         assertEquals(sign, YandexMusicModule.fileInfoSign(1700000000L, "123", "hq", listOf("aac", "mp3"), "raw"))
     }
+
+    @Test
+    fun liked_ids_keep_their_album_and_order() {
+        val body = """{"result":{"library":{"tracks":[{"id":"5","albumId":"50"},{"id":7,"albumId":70},{"id":"9"}]}}}"""
+        assertEquals(listOf("5:50", "7:70", "9"), YandexMusicModule().parseLikedIds(body))
+        assertEquals(emptyList<String>(), YandexMusicModule().parseLikedIds("nonsense"))
+    }
+
+    @Test
+    fun data_saver_takes_the_smallest_file() {
+        val listing = """{"result":[
+            {"codec":"mp3","bitrateInChannel":128,"downloadInfoUrl":"u/128"},
+            {"codec":"mp3","bitrateInChannel":320,"downloadInfoUrl":"u/320"}]}"""
+        assertEquals("u/128", YandexMusicModule().pickFile(listing, saver = true)!!.infoUrl)
+        assertEquals("u/320", YandexMusicModule().pickFile(listing)!!.infoUrl)
+    }
 }
