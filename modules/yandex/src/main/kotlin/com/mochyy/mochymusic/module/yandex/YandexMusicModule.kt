@@ -46,7 +46,7 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields, com.mochyy.mochym
         id = Id,
         name = "Yandex Music",
         version = "1.0",
-        description = "Search and play Yandex Music with your own account (token in settings). MP3 and AAC, no lossless",
+        description = "Search and play Yandex Music with your own account (token in settings). Search \"мне нравится\" to see your likes. MP3 and AAC, no lossless",
     )
 
     override val searchLabel = "Яндекс"
@@ -132,6 +132,8 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields, com.mochyy.mochym
     override suspend fun search(query: String, limit: Int): List<SearchHit> {
         val q = query.trim()
         if (q.isEmpty()) return emptyList()
+        // typing one of these opens what the account has liked, since the search page has no library of its own
+        if (q.lowercase() in LikedWords) return liked(limit)
         if (q.lowercase() in LikesWords) return likedTracks(limit.coerceAtLeast(100))
         val body = apiGet("the search") { "$Api/search?text=${enc(q)}&type=track&page=0&nocorrect=false" }
         return parseSearch(body).take(limit)
@@ -166,6 +168,29 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields, com.mochyy.mochym
                 if (album != null) "$id:$album" else id
             }
     }.getOrDefault(emptyList())
+
+    /** the account's liked songs, newest first */
+    private fun liked(limit: Int): List<SearchHit> {
+        val account = apiGet("the account") { "$Api/account/status" }
+        val uid = runCatching {
+            val a = json.parseToJsonElement(account).jsonObject["result"]?.jsonObject?.get("account")?.jsonObject
+            a?.str("uid") ?: a?.long("uid")?.toString()
+        }.getOrNull() ?: throw ModuleUnavailable("Yandex didn't say whose account this is")
+        val likes = apiGet("your likes") { "$Api/users/$uid/likes/tracks" }
+        val ids = runCatching {
+            json.parseToJsonElement(likes).jsonObject["result"]?.jsonObject?.get("library")?.jsonObject?.get("tracks")?.jsonArray
+        }.getOrNull().orEmpty().mapNotNull { e ->
+            val o = e as? JsonObject ?: return@mapNotNull null
+            val id = o.str("id") ?: o.long("id")?.toString() ?: return@mapNotNull null
+            val album = o.str("albumId") ?: o.long("albumId")?.toString()
+            if (album != null) "$id:$album" else id
+        }.take(limit.coerceAtMost(100))
+        if (ids.isEmpty()) return emptyList()
+        val form = "track-ids=" + enc(ids.joinToString(",")) + "&with-positions=false"
+        val details = apiGet("your liked songs", form = form) { "$Api/tracks" }
+        val items = runCatching { json.parseToJsonElement(details).jsonObject["result"]?.jsonArray }.getOrNull().orEmpty()
+        return items.mapNotNull { (it as? JsonObject)?.let(::hitOf) }
+    }
 
     internal fun parseSearch(body: String): List<SearchHit> {
         val items = runCatching {
@@ -302,6 +327,8 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields, com.mochyy.mochym
         const val Id = "yandex"
         private const val Api = "https://api.music.yandex.net"
         private const val FieldToken = "token"
+        // search for any of these to see the songs the account has liked
+        private val LikedWords = setOf("likes", "liked", "my likes", "favorites", "мне нравится", "любимое", "лайки", "❤")
         private const val FieldQuality = "quality"
         private const val QualityBest = "best"
         private const val QualitySaver = "saver"
@@ -396,10 +423,13 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields, com.mochyy.mochym
 
     // ---- talking to yandex --------------------------------------------------------------------
 
-    private fun apiGet(what: String, desktop: Boolean = false, urlFor: () -> String): String {
+    private fun apiGet(what: String, desktop: Boolean = false, form: String? = null, urlFor: () -> String): String {
         val t = token ?: throw ModuleUnavailable("Put your Yandex Music token in this module's settings")
         val response = try {
-            host.http(HttpRequest(urlFor(), headers = headersFor(t, desktop)))
+            host.http(
+                if (form == null) HttpRequest(urlFor(), headers = headersFor(t, desktop))
+                else HttpRequest(urlFor(), method = "POST", headers = headersFor(t, desktop), body = form.toByteArray(), contentType = "application/x-www-form-urlencoded"),
+            )
         } catch (e: Exception) {
             throw ModuleUnavailable("Yandex didn't answer for $what")
         }
