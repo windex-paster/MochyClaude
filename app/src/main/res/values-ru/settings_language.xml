@@ -164,6 +164,8 @@
     <string name="customise_font_claude_note">Антиква в духе чата Claude (Lora, открытая лицензия)</string>
     <string name="customise_icons">Иконки</string>
     <string name="customise_icons_caption">Рабочему столу может понадобиться несколько секунд, чтобы показать новую иконку. Запуск Mochy с неё тоже начнётся с этой иконки.</string>
+    <string name="app_icon_family_glass">Стекло</string>
+    <string name="app_icon_glass">Стеклянная</string>
     <string name="app_icon_family_mark">Mochy</string>
     <string name="app_icon_family_outline">Mochy контур</string>
     <string name="app_icon_family_anime">Аниме Mochy</string>

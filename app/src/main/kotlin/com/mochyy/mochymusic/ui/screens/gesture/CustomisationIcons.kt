@@ -238,13 +238,15 @@ private fun FamilyIcons(
                 TileLabel(text = stringResource(icon.label), picked = icon == picked)
             }
         }
-        val custom = AppIcon.custom(family, customColor)
-        IconTile(icon = custom, art = art, picked = custom == picked, onClick = { onPick(custom) }) {
-            CustomizeButton(open = customizing, onClick = onCustomize)
+        if (family.customizable) {
+            val custom = AppIcon.custom(family, customColor)
+            IconTile(icon = custom, art = art, picked = custom == picked, onClick = { onPick(custom) }) {
+                CustomizeButton(open = customizing, onClick = onCustomize)
+            }
         }
     }
     AnimatedVisibility(
-        visible = customizing,
+        visible = customizing && family.customizable,
         enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
         exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
     ) {

@@ -14,7 +14,9 @@ import androidx.annotation.StringRes
 import androidx.core.content.edit
 import com.mochyy.mochymusic.R
 
-enum class AppIconFamily(@StringRes val title: Int) {
+// [customizable] families can sit on any of the custom colours; a glass icon is a finished picture and can't
+enum class AppIconFamily(@StringRes val title: Int, val customizable: Boolean = true) {
+    Glass(R.string.app_icon_family_glass, customizable = false),
     Mark(R.string.app_icon_family_mark),
     Outline(R.string.app_icon_family_outline),
     Anime(R.string.app_icon_family_anime),
@@ -26,6 +28,7 @@ enum class AppIconFamily(@StringRes val title: Int) {
         Mark -> R.drawable.ic_launcher_mark
         Outline -> if (color.pale) R.drawable.ic_launcher_outline_dark else R.drawable.ic_launcher_monochrome
         Anime -> R.drawable.ic_launcher_anime
+        Glass -> R.drawable.ic_launcher_glass
     }
 }
 
@@ -62,6 +65,7 @@ class AppIcon private constructor(
         // the ready-made ones, each family's in the order its row shows them
         val presets: List<AppIcon> = listOf(
             Default,
+            AppIcon("Glass", "IconGlass", AppIconFamily.Glass, R.drawable.ic_launcher_glass, R.color.app_icon_glass, R.string.app_icon_glass),
             AppIcon("MarkWhite", "IconMarkWhite", AppIconFamily.Mark, R.drawable.ic_launcher_mark, R.color.app_icon_white, R.string.app_icon_white),
             AppIcon("MarkBlack", "IconMarkBlack", AppIconFamily.Mark, R.drawable.ic_launcher_mark, R.color.app_icon_black, R.string.app_icon_black),
             AppIcon("MarkMaterial", "IconMarkMaterial", AppIconFamily.Mark, R.drawable.ic_launcher_mark, R.color.app_icon_material, R.string.app_icon_material),
@@ -78,7 +82,7 @@ class AppIcon private constructor(
         )
 
         // every family on every custom colour, named MarkRed with the alias IconMarkRed, as the manifest has them
-        private val customs: List<AppIcon> = AppIconFamily.entries.flatMap { family ->
+        private val customs: List<AppIcon> = AppIconFamily.entries.filter { it.customizable }.flatMap { family ->
             AppIconColor.entries.map { color ->
                 AppIcon(
                     name = family.name + color.name,
