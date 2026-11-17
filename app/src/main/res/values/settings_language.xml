@@ -77,7 +77,7 @@
     <string name="settings_pause_search_history_desc">Stop saving what you search for</string>
     <string name="proxy_status_off">Off</string>
     <string name="proxy_status_on">On, through %1$s</string>
-    <string name="proxy_intro">Send Mochy\'s YouTube traffic through another server. It helps when YouTube blocks your network, or when YouTube Music isn\'t available where you live.</string>
+    <string name="proxy_intro">Send Mochy\'s traffic through another server. It helps when YouTube or other services are blocked on your network, or aren\'t available where you live.</string>
     <string name="proxy_use">Use a proxy</string>
     <string name="proxy_use_desc">Songs, videos, downloads and YouTube requests go through it</string>
     <string name="proxy_use_needs_address">Add the proxy\'s address first</string>
@@ -94,6 +94,9 @@
     <string name="proxy_check_desc">Try reaching YouTube through this proxy</string>
     <string name="proxy_check_pill_ok">Proxy works · %1$d ms</string>
     <string name="proxy_check_need_address">Add a proxy address first</string>
+    <string name="proxy_everything">Whole app</string>
+    <string name="proxy_everything_on">SoundCloud, Yandex, lyrics, covers, updates and everything else go through it too. Your home network (TV, car, other phones) stays direct.</string>
+    <string name="proxy_everything_off">Only YouTube goes through it</string>
     <string name="proxy_checking">Checking…</string>
     <string name="proxy_check_ok">YouTube answered through the proxy in %1$d ms.</string>
     <string name="proxy_check_not_found">Couldn\'t find that proxy. Check the address.</string>

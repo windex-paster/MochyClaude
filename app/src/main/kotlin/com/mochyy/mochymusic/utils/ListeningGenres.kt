@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.utils
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -18,7 +19,7 @@ import java.util.concurrent.TimeUnit
 object ListeningGenres {
 
     private val client by lazy {
-        OkHttpClient.Builder()
+        OkHttpClient.Builder().followAppProxy()
             .connectTimeout(8, TimeUnit.SECONDS)
             .readTimeout(8, TimeUnit.SECONDS)
             .build()

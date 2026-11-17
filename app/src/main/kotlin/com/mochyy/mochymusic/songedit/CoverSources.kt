@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.songedit
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import androidx.compose.runtime.Immutable
 import com.music.innertube.YouTube
 import com.music.innertube.models.SongItem
@@ -37,7 +38,7 @@ object CoverSources {
     private const val ModuleBudgetMs = 12_000L
 
     private val client by lazy {
-        OkHttpClient.Builder()
+        OkHttpClient.Builder().followAppProxy()
             .connectTimeout(8, TimeUnit.SECONDS)
             .readTimeout(8, TimeUnit.SECONDS)
             .build()

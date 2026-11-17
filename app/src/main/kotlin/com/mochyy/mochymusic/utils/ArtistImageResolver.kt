@@ -1,5 +1,6 @@
 package com.mochyy.mochymusic.utils
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import android.util.Log
 import com.mochyy.mochymusic.db.entities.ArtistEntity
 import com.mochyy.mochymusic.ui.utils.resize
@@ -17,7 +18,7 @@ object ArtistImageResolver {
     private const val TAG = "ArtistImageResolver"
 
     private val client by lazy {
-        OkHttpClient.Builder()
+        OkHttpClient.Builder().followAppProxy()
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .build()

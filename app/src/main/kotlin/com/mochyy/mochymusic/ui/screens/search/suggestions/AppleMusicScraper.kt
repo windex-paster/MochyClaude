@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.ui.screens.search.suggestions
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import android.util.Log
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -13,7 +14,7 @@ object AppleMusicScraper {
     private const val TAG = "AppleMusicScraper"
 
     private val client by lazy {
-        OkHttpClient.Builder()
+        OkHttpClient.Builder().followAppProxy()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .build()

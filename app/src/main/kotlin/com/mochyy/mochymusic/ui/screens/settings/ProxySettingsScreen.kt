@@ -54,6 +54,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.mochyy.mochymusic.R
+import com.mochyy.mochymusic.constants.ProxyAllKey
 import com.mochyy.mochymusic.constants.ProxyEnabledKey
 import com.mochyy.mochymusic.constants.ProxyPasswordKey
 import com.mochyy.mochymusic.constants.ProxyTypeKey
@@ -98,10 +99,11 @@ fun ProxySettingsScreen(navController: NavController) {
     var typeName by rememberPreference(ProxyTypeKey, defaultValue = Proxy.Type.HTTP.name)
     var username by rememberPreference(ProxyUsernameKey, defaultValue = "")
     var password by rememberPreference(ProxyPasswordKey, defaultValue = "")
+    var everything by rememberPreference(ProxyAllKey, defaultValue = true)
 
     val type = typeName.toEnum(defaultValue = Proxy.Type.HTTP)
-    val config = remember(type, address, username, password) {
-        AppProxy.parseAddress(address)?.let { ProxyConfig(type, it, username, password) }
+    val config = remember(type, address, username, password, everything) {
+        AppProxy.parseAddress(address)?.let { ProxyConfig(type, it, username, password, everything) }
     }
     var dialog by remember { mutableStateOf<ProxyDialog?>(null) }
     var check by remember { mutableStateOf<ProxyCheck>(ProxyCheck.Idle) }
@@ -154,6 +156,14 @@ fun ProxySettingsScreen(navController: NavController) {
                     trailingContent = {
                         AppSwitch(checked = enabled && config != null, onCheckedChange = { enabled = it }, enabled = config != null)
                     },
+                ),
+                SettingsItem(
+                    title = { Text(stringResource(R.string.proxy_everything)) },
+                    descriptionText = stringResource(if (everything) R.string.proxy_everything_on else R.string.proxy_everything_off),
+                    icon = painterResource(R.drawable.globe),
+                    iconShape = CircleShape,
+                    onClick = { everything = !everything },
+                    trailingContent = { AppSwitch(checked = everything, onCheckedChange = { everything = it }) },
                 ),
                 SettingsItem(
                     title = { Text(stringResource(R.string.proxy_address)) },

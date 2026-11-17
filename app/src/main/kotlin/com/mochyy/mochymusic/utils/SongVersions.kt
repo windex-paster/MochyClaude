@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.utils
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import com.mochyy.mochymusic.ui.player.normalizeCanvasArtistName
 import com.mochyy.mochymusic.ui.player.normalizeCanvasSongTitle
 import com.music.innertube.YouTube
@@ -38,7 +39,7 @@ object SongVersions {
     private val gate = Semaphore(4)
 
     private val client by lazy {
-        OkHttpClient.Builder()
+        OkHttpClient.Builder().followAppProxy()
             .connectTimeout(8, TimeUnit.SECONDS)
             .readTimeout(8, TimeUnit.SECONDS)
             .build()

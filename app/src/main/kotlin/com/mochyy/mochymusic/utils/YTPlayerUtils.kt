@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.utils
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import android.net.ConnectivityManager
 import android.util.Log
 import androidx.media3.common.PlaybackException
@@ -56,7 +57,7 @@ object YTPlayerUtils {
     private const val logTag = "YTPlayerUtils"
     private const val TAG = "YTPlayerUtils"
 
-    private val httpClient: OkHttpClient = OkHttpClient.Builder()
+    private val httpClient: OkHttpClient = OkHttpClient.Builder().followAppProxy()
         .dns(object : Dns {
             override fun lookup(hostname: String): List<InetAddress> {
                 val addresses = Dns.SYSTEM.lookup(hostname)

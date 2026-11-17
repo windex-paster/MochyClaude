@@ -125,7 +125,7 @@ constructor(
     private val dataSourceFactory =
         ResolvingDataSource.Factory(
             OkHttpDataSource.Factory(
-                OkHttpClient.Builder()
+                OkHttpClient.Builder().followAppProxy()
                     .dns(object : Dns {
                         override fun lookup(hostname: String): List<InetAddress> {
                             val addresses = Dns.SYSTEM.lookup(hostname)

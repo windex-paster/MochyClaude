@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.playback.custom
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.drm.DefaultDrmSessionManager
@@ -27,7 +28,7 @@ import java.util.concurrent.TimeUnit
 object WidevineDrm {
 
     private val client by lazy {
-        OkHttpClient.Builder().connectTimeout(15, TimeUnit.SECONDS).readTimeout(20, TimeUnit.SECONDS).build()
+        OkHttpClient.Builder().followAppProxy().connectTimeout(15, TimeUnit.SECONDS).readTimeout(20, TimeUnit.SECONDS).build()
     }
 
     fun sessionManager(license: LicenseServer): DrmSessionManager =

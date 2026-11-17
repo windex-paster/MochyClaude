@@ -3704,7 +3704,7 @@ class MusicService :
                             this,
                             OkHttpDataSource.Factory(
                                 OkHttpClient
-                                    .Builder()
+                                    .Builder().followAppProxy()
                                     .dns(object : Dns {
                                         override fun lookup(hostname: String): List<InetAddress> {
                                             val addresses = Dns.SYSTEM.lookup(hostname)

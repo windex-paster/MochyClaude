@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.modules
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -125,7 +126,7 @@ class ModuleRegistry @Inject constructor(
     private val updates by lazy { ModuleUpdates(prefs, client) }
 
     private val client by lazy {
-        OkHttpClient.Builder()
+        OkHttpClient.Builder().followAppProxy()
             .connectTimeout(12, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .build()

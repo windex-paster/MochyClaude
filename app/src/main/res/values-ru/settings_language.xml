@@ -77,7 +77,7 @@
     <string name="settings_pause_search_history_desc">Не сохранять, что вы искали</string>
     <string name="proxy_status_off">Выкл.</string>
     <string name="proxy_status_on">Вкл., через %1$s</string>
-    <string name="proxy_intro">Пускать трафик Mochy к YouTube через другой сервер. Помогает, когда YouTube блокируется в вашей сети или YouTube Music недоступен там, где вы живёте.</string>
+    <string name="proxy_intro">Пускать трафик Mochy через другой сервер. Помогает, когда YouTube и другие сервисы блокируются в вашей сети или недоступны там, где вы живёте.</string>
     <string name="proxy_use">Использовать прокси</string>
     <string name="proxy_use_desc">Песни, видео, загрузки и запросы к YouTube идут через него</string>
     <string name="proxy_use_needs_address">Сначала добавьте адрес прокси</string>
@@ -94,6 +94,9 @@
     <string name="proxy_check_desc">Попробовать открыть YouTube через этот прокси</string>
     <string name="proxy_check_pill_ok">Прокси работает · %1$d мс</string>
     <string name="proxy_check_need_address">Сначала укажи адрес прокси</string>
+    <string name="proxy_everything">Всё приложение</string>
+    <string name="proxy_everything_on">SoundCloud, Яндекс, тексты, обложки, обновления и всё остальное тоже идёт через него. Домашняя сеть (ТВ, авто, другие телефоны) идёт напрямую.</string>
+    <string name="proxy_everything_off">Через него идёт только YouTube</string>
     <string name="proxy_checking">Проверка…</string>
     <string name="proxy_check_ok">YouTube ответил через прокси за %1$d мс.</string>
     <string name="proxy_check_not_found">Не удалось найти этот прокси. Проверьте адрес.</string>

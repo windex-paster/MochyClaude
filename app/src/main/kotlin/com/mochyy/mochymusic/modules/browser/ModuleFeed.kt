@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.modules.browser
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.edit
@@ -60,7 +61,7 @@ class ModuleFeed @Inject constructor(
 ) {
     private val prefs = context.getSharedPreferences("module_browser", Context.MODE_PRIVATE)
     private val client by lazy {
-        OkHttpClient.Builder().connectTimeout(12, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).build()
+        OkHttpClient.Builder().followAppProxy().connectTimeout(12, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).build()
     }
 
     private val _session = MutableStateFlow(prefs.getString(SessionKey, null))

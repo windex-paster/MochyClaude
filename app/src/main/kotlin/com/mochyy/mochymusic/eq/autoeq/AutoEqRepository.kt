@@ -1,5 +1,6 @@
 package com.mochyy.mochymusic.eq.autoeq
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import android.content.Context
 import android.net.Uri
 import com.mochyy.mochymusic.eq.data.ParametricEQ
@@ -57,7 +58,7 @@ class AutoEqRepository @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     private val client by lazy {
-        OkHttpClient.Builder()
+        OkHttpClient.Builder().followAppProxy()
             .connectTimeout(12, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .build()

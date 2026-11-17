@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.link
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
@@ -49,7 +50,7 @@ object LinkWire {
 
     // a lan is fast and a phone that's gone should be noticed quickly, so short waits
     val client: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        OkHttpClient.Builder().followAppProxy()
             .connectTimeout(4, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .retryOnConnectionFailure(false)

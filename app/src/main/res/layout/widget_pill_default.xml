@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="6dp">
+    android:padding="4dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -10,55 +10,55 @@
         android:background="@drawable/nw_default_pill"
         android:gravity="center"
         android:orientation="horizontal"
-        android:padding="4dp">
+        android:padding="3dp">
 
         <ImageView
             android:id="@+id/nw_pill_cover"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_margin="3dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_margin="2dp"
             android:background="@drawable/nw_default_circle"
-            android:padding="12dp"
+            android:padding="10dp"
             android:scaleType="centerCrop"
             android:contentDescription="@null"
             android:src="@drawable/ic_nw_note" />
         <ImageView
             android:id="@+id/nw_pill_prev"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_margin="3dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_margin="2dp"
             android:background="@drawable/nw_default_circle"
-            android:padding="12dp"
+            android:padding="10dp"
             android:scaleType="fitCenter"
             android:contentDescription="@null"
             android:src="@drawable/ic_nw_prev" />
         <ImageView
             android:id="@+id/nw_pill_play"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_margin="3dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_margin="2dp"
             android:background="@drawable/nw_default_circle_play"
-            android:padding="12dp"
+            android:padding="10dp"
             android:scaleType="fitCenter"
             android:contentDescription="@null"
             android:src="@drawable/ic_nw_play" />
         <ImageView
             android:id="@+id/nw_pill_next"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_margin="3dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_margin="2dp"
             android:background="@drawable/nw_default_circle"
-            android:padding="12dp"
+            android:padding="10dp"
             android:scaleType="fitCenter"
             android:contentDescription="@null"
             android:src="@drawable/ic_nw_next" />
         <ImageView
             android:id="@+id/nw_pill_like"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_margin="3dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_margin="2dp"
             android:background="@drawable/nw_default_circle"
-            android:padding="12dp"
+            android:padding="10dp"
             android:scaleType="fitCenter"
             android:contentDescription="@null"
             android:src="@drawable/ic_nw_heart_outline" />

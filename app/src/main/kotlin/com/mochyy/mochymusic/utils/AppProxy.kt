@@ -3,6 +3,7 @@
 package com.mochyy.mochymusic.utils
 
 import androidx.datastore.preferences.core.Preferences
+import com.mochyy.mochymusic.constants.ProxyAllKey
 import com.mochyy.mochymusic.constants.ProxyEnabledKey
 import com.mochyy.mochymusic.constants.ProxyPasswordKey
 import com.mochyy.mochymusic.constants.ProxyTypeKey
@@ -31,6 +32,8 @@ data class ProxyConfig(
     val address: InetSocketAddress,
     val username: String,
     val password: String,
+    // false keeps it to youtube, true sends the whole app through it
+    val everything: Boolean = true,
 ) {
     val hasLogin: Boolean get() = username.isNotEmpty() || password.isNotEmpty()
 }
@@ -43,14 +46,41 @@ object AppProxy {
     // one pool for every client that follows the proxy, so a new proxy can drop the idle connections that went the old way
     internal val connectionPool = ConnectionPool()
 
+    // the phone's own proxy setting, read before ours takes over as the process-wide one
+    private val system: ProxySelector? = ProxySelector.getDefault()
+
+    private fun viaProxy(uri: URI?): List<Proxy>? {
+        val config = current ?: return null
+        val host = uri?.host ?: return null
+        // the TV, the car and other phones sit on the home network, never behind the proxy
+        if (isLocalHost(host)) return listOf(Proxy.NO_PROXY)
+        return listOf(Proxy(config.type, config.address))
+    }
+
     // with no proxy of ours the phone's own proxy setting still counts, as it did before
     internal val selector = object : ProxySelector() {
         override fun select(uri: URI?): List<Proxy> =
-            YouTube.proxy?.let { listOf(it) }
-                ?: ProxySelector.getDefault()?.select(uri)
-                ?: listOf(Proxy.NO_PROXY)
+            viaProxy(uri) ?: system?.select(uri) ?: listOf(Proxy.NO_PROXY)
 
         override fun connectFailed(uri: URI?, address: SocketAddress?, error: IOException?) = Unit
+    }
+
+    // every client in the process that never asked for the proxy by name: modules, lyrics, covers, updates, media streams
+    private val everywhere = object : ProxySelector() {
+        override fun select(uri: URI?): List<Proxy> =
+            (if (current?.everything == true) viaProxy(uri) else null) ?: system?.select(uri) ?: listOf(Proxy.NO_PROXY)
+
+        override fun connectFailed(uri: URI?, address: SocketAddress?, error: IOException?) = Unit
+    }
+
+    private val installed by lazy { ProxySelector.setDefault(everywhere) }
+
+    private val privateIpv4 = Regex("""^(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)""")
+
+    private fun isLocalHost(host: String): Boolean {
+        val h = host.trim('[', ']').lowercase()
+        return h == "localhost" || h.endsWith(".local") || h == "::1" || h.startsWith("fe80:") || h.startsWith("fd") && ':' in h ||
+            privateIpv4.containsMatchIn(h)
     }
 
     /** what the settings say, with or without the switch on, null while the address isn't host:port */
@@ -62,11 +92,13 @@ object AppProxy {
             address = address,
             username = settings[ProxyUsernameKey].orEmpty(),
             password = settings[ProxyPasswordKey].orEmpty(),
+            everything = settings[ProxyAllKey] ?: true,
         )
     }
 
     /** sends youtube through config, or straight out when it's null, false when nothing changed */
     fun apply(config: ProxyConfig?): Boolean {
+        installed
         if (config == current) return false
         YouTube.proxyAuth = config?.takeIf { it.type == Proxy.Type.HTTP && it.hasLogin }
             ?.let { Credentials.basic(it.username, it.password) }

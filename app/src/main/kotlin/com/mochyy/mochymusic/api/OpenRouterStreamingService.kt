@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.api
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -19,7 +20,7 @@ import kotlinx.serialization.json.*
 import timber.log.Timber
 
 object OpenRouterStreamingService {
-    private val client = OkHttpClient.Builder()
+    private val client = OkHttpClient.Builder().followAppProxy()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)

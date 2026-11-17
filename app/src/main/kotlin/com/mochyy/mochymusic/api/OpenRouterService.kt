@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.api
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -14,7 +15,7 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 object OpenRouterService {
-    private val client = OkHttpClient.Builder()
+    private val client = OkHttpClient.Builder().followAppProxy()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(90, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)

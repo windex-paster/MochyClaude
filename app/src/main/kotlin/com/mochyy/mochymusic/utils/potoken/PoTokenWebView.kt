@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.utils.potoken
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import android.content.Context
 import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
@@ -312,7 +313,7 @@ class PoTokenWebView private constructor(
         /** Warm path: the engine is already up, so minting one token should be quick. */
         private const val MINT_TIMEOUT_MS = 10_000L
 
-        private val httpClient = OkHttpClient.Builder()
+        private val httpClient = OkHttpClient.Builder().followAppProxy()
             .proxy(YouTube.proxy)
             .build()
 

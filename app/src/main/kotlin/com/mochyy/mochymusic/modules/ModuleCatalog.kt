@@ -2,6 +2,7 @@
 
 package com.mochyy.mochymusic.modules
 
+import com.mochyy.mochymusic.utils.followAppProxy
 import com.mochyy.mochymusic.module.ModuleFeature
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,7 +28,7 @@ data class CatalogModule(
 @Singleton
 class ModuleCatalog @Inject constructor() {
     private val client by lazy {
-        OkHttpClient.Builder().connectTimeout(10, TimeUnit.SECONDS).readTimeout(15, TimeUnit.SECONDS).build()
+        OkHttpClient.Builder().followAppProxy().connectTimeout(10, TimeUnit.SECONDS).readTimeout(15, TimeUnit.SECONDS).build()
     }
 
     suspend fun load(): Result<List<CatalogModule>> = withContext(Dispatchers.IO) {
