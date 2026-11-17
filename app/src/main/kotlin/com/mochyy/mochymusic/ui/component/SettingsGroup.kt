@@ -265,11 +265,14 @@ private fun SettingsItemRow(
     ) {
 
         item.icon?.let { icon ->
+            // a coloured rounded tile with a white glyph when the page picks one, else the plain light circle
+            val tileColor = item.iconTile
+            val iconInk = if (tileColor != null) Color.White else Color(0xFF1C1C1E)
             Box(
                 modifier = Modifier
-                    .size(32.dp)
-                    .clip(androidx.compose.foundation.shape.CircleShape)
-                    .background(Color(0xFFE5E5EA)),
+                    .size(if (tileColor != null) 36.dp else 32.dp)
+                    .clip(if (tileColor != null) androidx.compose.foundation.shape.RoundedCornerShape(10.dp) else androidx.compose.foundation.shape.CircleShape)
+                    .background(tileColor ?: Color(0xFFE5E5EA)),
                 contentAlignment = Alignment.Center
             ) {
                 if (item.showBadge) {
@@ -285,9 +288,9 @@ private fun SettingsItemRow(
                                 painter = icon,
                                 contentDescription = null,
                                 tint = if (!item.enabled)
-                                    Color(0xFF1C1C1E).copy(alpha = 0.38f)
+                                    iconInk.copy(alpha = 0.38f)
                                 else
-                                    Color(0xFF1C1C1E),
+                                    iconInk,
                                 modifier = Modifier.size(20.dp)
                             )
                         } else {
@@ -305,10 +308,10 @@ private fun SettingsItemRow(
                             painter = icon,
                             contentDescription = null,
                             tint = if (!item.enabled)
-                                Color(0xFF1C1C1E).copy(alpha = 0.38f)
+                                iconInk.copy(alpha = 0.38f)
                             else
-                                Color(0xFF1C1C1E),
-                            modifier = Modifier.size(16.dp)
+                                iconInk,
+                            modifier = Modifier.size(if (tileColor != null) 20.dp else 16.dp)
                         )
                     } else {
                         Image(
@@ -390,6 +393,8 @@ data class SettingsItem(
     val isHighlighted: Boolean = false,
     val tintIcon: Boolean = true,
     val iconShape: Shape? = null,
+    /** a colour for the icon to sit on as a rounded tile, like the main settings list; null keeps the light circle */
+    val iconTile: Color? = null,
     val enabled: Boolean = true,
     val isVisible: Boolean = true,
     val isSubOption: Boolean = false,

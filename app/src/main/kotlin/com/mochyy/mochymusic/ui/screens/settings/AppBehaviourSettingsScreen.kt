@@ -64,14 +64,17 @@ fun AppBehaviourSettingsScreen(navController: NavController) {
         searchBar = { SubSettingsSearchBar(query = query, onQueryChange = { query = it }) },
     ) {
         // larpaspriority
-        SettingsSection(title = null, items = larpItems().matching(query))
-        SettingsSection(stringResource(R.string.general_app_settings), generalItems().matching(query))
-        SettingsSection(stringResource(R.string.settings_section_network), networkItems(navController).matching(query))
-        SettingsSection(stringResource(R.string.settings_section_library_privacy), libraryItems().matching(query))
-        SettingsSection(stringResource(R.string.settings_related), relatedItems(navController).matching(query))
+        SettingsSection(title = null, items = larpItems().matching(query).tiled(Color(0xFFAF52DE)))
+        SettingsSection(stringResource(R.string.general_app_settings), generalItems().matching(query).tiled(Color(0xFF0A84FF)))
+        SettingsSection(stringResource(R.string.settings_section_network), networkItems(navController).matching(query).tiled(Color(0xFF30D158)))
+        SettingsSection(stringResource(R.string.settings_section_library_privacy), libraryItems().matching(query).tiled(Color(0xFFFF9F0A)))
+        SettingsSection(stringResource(R.string.settings_related), relatedItems(navController).matching(query).tiled(Color(0xFFFF453A)))
         Spacer(Modifier.height(140.dp))
     }
 }
+
+// every row of a section on one colour of tile, as in the main settings list
+private fun List<SettingsItem>.tiled(color: Color) = map { it.copy(iconTile = color) }
 
 // there's no limit to the larp
 @Composable
@@ -80,7 +83,7 @@ private fun larpItems(): List<SettingsItem> {
     val (level, setLevel) = rememberEnumPreference(LarpLevelKey, defaultValue = LarpLevel.MAXXING)
     val overlay = LocalZoomOutOverlayState.current
     // the design's plain circle, nothing drawn in it
-    val blank = remember { ColorPainter(Color.Transparent) }
+    val blank = painterResource(R.drawable.equalizer)
     val openSheet = {
         overlay.showLarpSheet(current = level) { picked ->
             setLevel(picked)

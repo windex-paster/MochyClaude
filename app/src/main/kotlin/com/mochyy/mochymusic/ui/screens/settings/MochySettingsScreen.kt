@@ -553,7 +553,7 @@ fun MochySettingsScreen(navController: NavController, pane: SettingsPane? = null
 
             val bottomInset = com.mochyy.mochymusic.LocalPlayerAwareWindowInsets.current.asPaddingValues()
             val bottomPadding = bottomInset.calculateBottomPadding()
-            val bottomSpacerHeight = maxOf(340.dp, bottomPadding + 160.dp)
+            val bottomSpacerHeight = bottomPadding + 24.dp
 
             // Headroom spacer for smooth scrolling past collapse threshold and bottom bar
             Spacer(modifier = Modifier.height(bottomSpacerHeight))
