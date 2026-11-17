@@ -158,7 +158,7 @@ fun DiscordScreen(
                 },
             )
             // room for the floating preview over the last card
-            Spacer(Modifier.height(220.dp))
+            Spacer(Modifier.height(0.dp))
         }
 
         DiscordFloatingPreview(

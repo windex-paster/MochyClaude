@@ -172,7 +172,7 @@ fun ProxySettingsScreen(navController: NavController) {
             ),
         )
 
-        Spacer(Modifier.height(140.dp))
+        Spacer(Modifier.height(0.dp))
     }
 
     when (dialog) {

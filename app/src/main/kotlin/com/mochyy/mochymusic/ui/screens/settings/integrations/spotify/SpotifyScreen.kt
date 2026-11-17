@@ -134,7 +134,7 @@ fun SpotifyScreen(navController: NavController) {
                 .padding(top = 10.dp, start = 8.dp, end = 8.dp),
         )
         // room under the last card for the mini player
-        Spacer(Modifier.height(140.dp))
+        Spacer(Modifier.height(0.dp))
     }
 }
 

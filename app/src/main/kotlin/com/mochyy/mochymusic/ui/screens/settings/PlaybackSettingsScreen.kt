@@ -48,7 +48,7 @@ fun PlaybackSettingsScreen(navController: NavController) {
         SettingsSection(stringResource(R.string.settings_section_listening), listeningItems().matching(query))
         SettingsSection(stringResource(R.string.settings_section_failures), failureItems().matching(query))
         SettingsSection(stringResource(R.string.settings_related), relatedItems(navController).matching(query))
-        Spacer(Modifier.height(140.dp))
+        Spacer(Modifier.height(0.dp))
     }
 }
 

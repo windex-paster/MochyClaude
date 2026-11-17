@@ -73,7 +73,7 @@ fun NowPlayingSettingsScreen(navController: NavController) {
         SettingsSection(stringResource(R.string.settings_section_videos), videoItems().matching(query))
         SettingsSection(stringResource(R.string.settings_section_canvas), canvasItems(navController).matching(query))
         SettingsSection(stringResource(R.string.settings_related), relatedItems(navController).matching(query))
-        Spacer(Modifier.height(140.dp))
+        Spacer(Modifier.height(0.dp))
     }
 }
 

@@ -69,7 +69,7 @@ fun AppBehaviourSettingsScreen(navController: NavController) {
         SettingsSection(stringResource(R.string.settings_section_network), networkItems(navController).matching(query).tiled(Color(0xFF30D158)))
         SettingsSection(stringResource(R.string.settings_section_library_privacy), libraryItems().matching(query).tiled(Color(0xFFFF9F0A)))
         SettingsSection(stringResource(R.string.settings_related), relatedItems(navController).matching(query).tiled(Color(0xFFFF453A)))
-        Spacer(Modifier.height(140.dp))
+        Spacer(Modifier.height(0.dp))
     }
 }
 

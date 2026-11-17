@@ -168,7 +168,7 @@ fun CrossmixSettingsScreen(navController: NavController) {
         }
 
         TransportFadeSection()
-        Spacer(Modifier.height(120.dp))
+        Spacer(Modifier.height(0.dp))
     }
 }
 
