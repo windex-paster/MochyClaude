@@ -92,6 +92,8 @@
     <string name="proxy_login_clear">Очистить</string>
     <string name="proxy_check">Проверить соединение</string>
     <string name="proxy_check_desc">Попробовать открыть YouTube через этот прокси</string>
+    <string name="proxy_check_pill_ok">Прокси работает · %1$d мс</string>
+    <string name="proxy_check_need_address">Сначала укажи адрес прокси</string>
     <string name="proxy_checking">Проверка…</string>
     <string name="proxy_check_ok">YouTube ответил через прокси за %1$d мс.</string>
     <string name="proxy_check_not_found">Не удалось найти этот прокси. Проверьте адрес.</string>

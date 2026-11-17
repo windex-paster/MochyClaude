@@ -92,6 +92,8 @@
     <string name="proxy_login_clear">Clear</string>
     <string name="proxy_check">Check connection</string>
     <string name="proxy_check_desc">Try reaching YouTube through this proxy</string>
+    <string name="proxy_check_pill_ok">Proxy works · %1$d ms</string>
+    <string name="proxy_check_need_address">Add a proxy address first</string>
     <string name="proxy_checking">Checking…</string>
     <string name="proxy_check_ok">YouTube answered through the proxy in %1$d ms.</string>
     <string name="proxy_check_not_found">Couldn\'t find that proxy. Check the address.</string>

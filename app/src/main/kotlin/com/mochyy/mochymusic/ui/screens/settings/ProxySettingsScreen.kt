@@ -2,7 +2,24 @@
 
 package com.mochyy.mochymusic.ui.screens.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Surface
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.window.Popup
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +35,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -92,6 +110,26 @@ fun ProxySettingsScreen(navController: NavController) {
     // a changed setting makes the last check's answer stale
     LaunchedEffect(config) { check = ProxyCheck.Idle }
 
+    // the small pill at the top that shows the answer of a check; the number makes each one distinct
+    var pill by remember { mutableStateOf<Triple<Int, Boolean, String>?>(null) }
+    var pillCount by remember { mutableStateOf(0) }
+    val pingText = (check as? ProxyCheck.Passed)?.let { stringResource(R.string.proxy_check_pill_ok, it.millis.toInt()) }
+    val failText = (check as? ProxyCheck.Failed)?.let { stringResource(it.reason) }
+    val needAddress = stringResource(R.string.proxy_check_need_address)
+    LaunchedEffect(check) {
+        when (check) {
+            is ProxyCheck.Passed -> pill = Triple(++pillCount, true, pingText.orEmpty())
+            is ProxyCheck.Failed -> pill = Triple(++pillCount, false, failText.orEmpty())
+            else -> Unit
+        }
+    }
+    LaunchedEffect(pill?.first) {
+        if (pill != null) {
+            delay(3500)
+            pill = null
+        }
+    }
+
     SubSettingsScaffold(
         title = stringResource(R.string.proxy),
         onBack = { navController.navigateUp() },
@@ -155,10 +193,12 @@ fun ProxySettingsScreen(navController: NavController) {
                     },
                     icon = painterResource(R.drawable.network_update),
                     iconShape = CircleShape,
-                    enabled = config != null && check != ProxyCheck.Running,
+                    enabled = check != ProxyCheck.Running,
                     onClick = {
                         val target = config
-                        if (target != null) {
+                        if (target == null) {
+                            pill = Triple(++pillCount, false, needAddress)
+                        } else {
                             check = ProxyCheck.Running
                             scope.launch {
                                 check = AppProxy.check(target).fold(
@@ -173,6 +213,37 @@ fun ProxySettingsScreen(navController: NavController) {
         )
 
         Spacer(Modifier.height(0.dp))
+    }
+
+    pill?.let { (id, ok, text) ->
+        val topInset = WindowInsets.statusBars.getTop(LocalDensity.current)
+        val gap = with(LocalDensity.current) { 12.dp.roundToPx() }
+        key(id) {
+            val visible = remember { MutableTransitionState(false).apply { targetState = true } }
+            Popup(alignment = Alignment.TopCenter, offset = IntOffset(0, topInset + gap)) {
+                AnimatedVisibility(
+                    visibleState = visible,
+                    enter = fadeIn() + slideInVertically { -it },
+                    exit = fadeOut() + slideOutVertically { -it },
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFF2C2C2E),
+                        shadowElevation = 8.dp,
+                        modifier = Modifier.padding(horizontal = 16.dp).widthIn(max = 340.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 11.dp),
+                        ) {
+                            Box(Modifier.size(10.dp).background(if (ok) Color(0xFF30D158) else Color(0xFFFF453A), CircleShape))
+                            Spacer(Modifier.size(10.dp))
+                            Text(text, color = Color.White, style = MaterialTheme.typography.bodyMedium, maxLines = 3)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     when (dialog) {
