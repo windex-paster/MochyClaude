@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="queue_next_in_queue">Далее в очереди</string>
+    <string name="player_menu_delete_download">Удалить загрузку</string>
+    <string name="sleep_timer_ready">Готов</string>
+    <string name="sleep_timer_running">Идёт</string>
+    <string name="sleep_timer_paused">На паузе</string>
+    <string name="sleep_timer_until_song_ends">Остановится, когда закончится этот трек</string>
+    <string name="sleep_timer_start">Старт</string>
+    <string name="sleep_timer_pause">Пауза</string>
+    <string name="sleep_timer_resume">Продолжить</string>
+    <string name="sleep_timer_minus_minute">−1 мин</string>
+    <string name="sleep_timer_plus_minute">+1 мин</string>
+    <string name="sleep_timer_quick_set">Быстрая установка</string>
+    <string name="sleep_timer_preset_hour">1 ч</string>
+    <string name="sleep_timer_custom">Своё время</string>
+    <string name="sleep_timer_custom_desc">Введи свои часы, минуты и секунды</string>
+    <string name="sleep_timer_hours">Часы</string>
+    <string name="sleep_timer_minutes">Минуты</string>
+    <string name="sleep_timer_seconds">Секунды</string>
+    <string name="sleep_timer_enter_time">Введи время</string>
+    <string name="sleep_timer_set_custom">Установить: %1$s</string>
+    <string name="sleep_timer_end_after_song">Остановить после этого трека</string>
+    <string name="sleep_timer_cancel">ОТМЕНИТЬ ТАЙМЕР</string>
+    <string name="sleep_timer_paused_left">на паузе, осталось %1$s</string>
+    <string name="no_internet_next_on_phone">Нет интернета, поэтому играет следующий трек, сохранённый на телефоне</string>
+    <string name="error_bot_check">YouTube просит пройти проверку на бота из этой сети. Повтори через несколько минут, переключись между Wi-Fi и мобильным интернетом или войди в свой аккаунт YouTube.</string>
+    <string name="error_premium_only_login">YouTube воспроизводит этот трек только участникам Music Premium. Войди в аккаунт с Premium, чтобы послушать.</string>
+    <string name="error_premium_only">YouTube воспроизводит этот трек только участникам Music Premium, а твой аккаунт не подошёл.</string>
+    <string name="error_rate_limited">YouTube ограничивает запросы из этой сети. Повтори через несколько минут.</string>
+    <string name="playing_music_video_audio">YouTube не отдал этот трек, поэтому играет звук из его клипа</string>
+</resources>
