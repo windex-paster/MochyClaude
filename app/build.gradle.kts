@@ -130,6 +130,11 @@ extensions.configure<ApplicationExtension> {
             java.directories.add("src/foss/kotlin")
             res.directories.add("src/foss/res")
         }
+        // the fork build is the debug app with ART's optimisations, so it takes the debug name, shortcuts and permissions
+        maybeCreate("fork").apply {
+            res.directories.add("src/debug/res")
+            manifest.srcFile("src/debug/AndroidManifest.xml")
+        }
     }
 
     // Release signing only works when the CI secrets are present. Locally they are not, which
@@ -212,6 +217,18 @@ extensions.configure<ApplicationExtension> {
         create("fast") {
             initWith(getByName("debug"))
             applicationIdSuffix = ".fast"
+            isDebuggable = false
+            isProfileable = true
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
+            // the provider modules only publish debug and release variants
+            matchingFallbacks += listOf("debug")
+        }
+        // what this fork's builds use: the debug app id, so it installs over the debug build and keeps its data, but
+        // not debuggable, which is what lets ART use the baseline profile; a debuggable Compose build drops frames
+        create("fork") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".debug"
             isDebuggable = false
             isProfileable = true
             isMinifyEnabled = false

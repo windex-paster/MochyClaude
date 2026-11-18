@@ -50,7 +50,7 @@ jobs:
           LIBREFM_API_KEY: ${{ secrets.LIBREFM_API_KEY }}
           LIBREFM_SECRET: ${{ secrets.LIBREFM_SECRET }}
           DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
-        run: ./gradlew assembleUniversalGmsDebug --no-configuration-cache --console=plain --warning-mode summary
+        run: ./gradlew assembleUniversalGmsFork --no-configuration-cache --console=plain --warning-mode summary
 
       - name: Publish the release
         env:
@@ -58,7 +58,7 @@ jobs:
           TAG: ${{ inputs.tag }}
         run: |
           TAG="${TAG:-build-${{ github.run_number }}}"
-          APK=$(ls app/build/outputs/apk/universalGms/debug/*.apk | head -n 1)
+          APK=$(ls app/build/outputs/apk/universalGms/fork/*.apk | head -n 1)
           cp "$APK" "Mochy-$TAG.apk"
           gh release create "$TAG" "Mochy-$TAG.apk" \
             --title "Mochy $TAG" \
