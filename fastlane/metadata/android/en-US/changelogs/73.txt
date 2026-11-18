@@ -1,0 +1,9 @@
+SoundCloud and Yandex Music sources with a sliding search selector
+Yandex: liked songs, quality choice, token-expired warning
+Proxy for the whole app with a connection check and ping
+Full Russian translation
+New iOS-style grouped settings and coloured tiles
+Glass app icon and Claude serif font
+4 new home-screen widgets (glass and default)
+Update check row in settings
+DASH fix, Turkish translation, landscape and sheet fixes
