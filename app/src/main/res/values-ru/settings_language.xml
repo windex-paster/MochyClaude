@@ -97,6 +97,9 @@
     <string name="proxy_everything">Всё приложение</string>
     <string name="proxy_everything_on">SoundCloud, Яндекс, тексты, обложки, обновления и всё остальное тоже идёт через него. Домашняя сеть (ТВ, авто, другие телефоны) идёт напрямую.</string>
     <string name="proxy_everything_off">Через него идёт только YouTube</string>
+    <string name="customise_search_glass">Стекло в поиске</string>
+    <string name="customise_search_glass_title">Стеклянные кнопки и поле поиска</string>
+    <string name="customise_search_glass_desc">Кнопки источников (YouTube Music, SoundCloud, Яндекс Музыка), виды результатов и поле поиска становятся стеклянными.</string>
     <string name="proxy_checking">Проверка…</string>
     <string name="proxy_check_ok">YouTube ответил через прокси за %1$d мс.</string>
     <string name="proxy_check_not_found">Не удалось найти этот прокси. Проверьте адрес.</string>

@@ -97,6 +97,9 @@
     <string name="proxy_everything">Whole app</string>
     <string name="proxy_everything_on">SoundCloud, Yandex, lyrics, covers, updates and everything else go through it too. Your home network (TV, car, other phones) stays direct.</string>
     <string name="proxy_everything_off">Only YouTube goes through it</string>
+    <string name="customise_search_glass">Search glass</string>
+    <string name="customise_search_glass_title">Glass chips and search field</string>
+    <string name="customise_search_glass_desc">The source buttons (YouTube Music, SoundCloud, Yandex Music), the kinds of result and the search field turn to glass.</string>
     <string name="proxy_checking">Checking…</string>
     <string name="proxy_check_ok">YouTube answered through the proxy in %1$d ms.</string>
     <string name="proxy_check_not_found">Couldn\'t find that proxy. Check the address.</string>

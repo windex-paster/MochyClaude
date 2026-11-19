@@ -235,6 +235,10 @@ fun OnlineSearchResult(
     val landscape = com.mochyy.mochymusic.ui.utils.isLandscapeLayout()
     val statusTop = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
 
+    // a second row of chips (the kinds of result) sits under the sources while YouTube Music is picked, and the list has to start under both
+    val twoChipRows = viewModel.sources.isNotEmpty() && sourceId == null
+    val extraChipRow = if (twoChipRows) 34.dp else 0.dp
+
     val top = remember(summary, viewModel.query) {
         summary?.let { pickTopResult(it.summaries.flatMap { section -> section.items }, viewModel.query) }
     }
@@ -256,7 +260,7 @@ fun OnlineSearchResult(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    top = if (landscape) statusTop + SearchTopClearance + 34.dp + 18.dp else searchTopBarHeight(withTitle = true, extra = 46.dp),
+                    top = if (landscape) statusTop + SearchTopClearance + 34.dp + 18.dp + extraChipRow else searchTopBarHeight(withTitle = true, extra = 46.dp + extraChipRow),
                     bottom = bottomInset + 24.dp,
                 ),
             ) {

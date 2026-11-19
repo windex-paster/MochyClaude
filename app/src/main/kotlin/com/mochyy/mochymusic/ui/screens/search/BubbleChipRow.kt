@@ -57,6 +57,7 @@ fun BubbleChipRow(
     val lefts = remember(labels.size) { mutableStateListOf<Float>().apply { repeat(labels.size) { add(Float.NaN) } } }
     val rights = remember(labels.size) { mutableStateListOf<Float>().apply { repeat(labels.size) { add(Float.NaN) } } }
 
+    val glass by com.mochyy.mochymusic.utils.rememberPreference(com.mochyy.mochymusic.constants.SearchGlassKey, defaultValue = false)
     val bubbleLeft = remember { Animatable(0f) }
     val bubbleRight = remember { Animatable(0f) }
     var placed by remember { mutableStateOf(false) }
@@ -91,6 +92,10 @@ fun BubbleChipRow(
                     val left = lefts[i]
                     val right = rights[i]
                     if (left.isNaN() || right.isNaN()) continue
+                    if (glass) {
+                        glassPill(left, 0f, right - left, size.height, bright = false)
+                        continue
+                    }
                     drawRoundRect(
                         color = SearchColors.Tile,
                         topLeft = Offset(left, 0f),
@@ -100,6 +105,10 @@ fun BubbleChipRow(
                 }
                 if (placed && selectedIndex in labels.indices) {
                     val left = bubbleLeft.value
+                    if (glass) {
+                        glassPill(left, 0f, (bubbleRight.value - left).coerceAtLeast(0f), size.height, bright = true)
+                        return@drawBehind
+                    }
                     drawRoundRect(
                         color = Color.White,
                         topLeft = Offset(left, 0f),

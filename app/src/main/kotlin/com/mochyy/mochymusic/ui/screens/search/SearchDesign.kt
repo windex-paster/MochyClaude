@@ -476,12 +476,13 @@ fun SearchField(
         }
     }
 
+    val glass by com.mochyy.mochymusic.utils.rememberPreference(com.mochyy.mochymusic.constants.SearchGlassKey, defaultValue = false)
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(SearchFieldHeight)
             .clip(RoundedCornerShape(50))
-            .background(if (focused) SearchColors.FieldFocused else SearchColors.Field)
+            .then(if (glass) Modifier.glassFill() else Modifier.background(if (focused) SearchColors.FieldFocused else SearchColors.Field))
             .then(
                 if (readOnlyClick != null) {
                     Modifier.clickable(
