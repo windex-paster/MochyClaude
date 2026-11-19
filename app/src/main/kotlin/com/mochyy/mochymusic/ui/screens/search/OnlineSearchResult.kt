@@ -144,6 +144,14 @@ fun OnlineSearchResult(
     // null is YouTube Music, otherwise the id of a source with its own search (SoundCloud)
     var sourceId by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(sourceId) { sourceId?.let(viewModel::loadSource) }
+    // 0 is "All", 1 the songs, then the module's kinds (artists, albums, playlists)
+    var sourceCat by rememberSaveable { mutableStateOf(0) }
+    val activeKinds = sourceId?.let { viewModel.source(it)?.entryKinds }.orEmpty()
+    LaunchedEffect(sourceId, sourceCat) {
+        val id = sourceId ?: return@LaunchedEffect
+        if (sourceCat == 0) activeKinds.forEach { viewModel.loadEntries(id, it) }
+        else activeKinds.getOrNull(sourceCat - 2)?.let { viewModel.loadEntries(id, it) }
+    }
     val summary = viewModel.summaryPage
     val itemsPage by remember(searchFilter) {
         derivedStateOf { searchFilter?.value?.let { viewModel.viewStateMap[it] } }
@@ -236,7 +244,7 @@ fun OnlineSearchResult(
     val statusTop = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
 
     // a second row of chips (the kinds of result) sits under the sources while YouTube Music is picked, and the list has to start under both
-    val twoChipRows = viewModel.sources.isNotEmpty() && sourceId == null
+    val twoChipRows = viewModel.sources.isNotEmpty() && (sourceId == null || activeKinds.isNotEmpty())
     val extraChipRow = if (twoChipRows) 34.dp else 0.dp
 
     val top = remember(summary, viewModel.query) {
@@ -267,28 +275,84 @@ fun OnlineSearchResult(
                 val activeSource = sourceId
                 if (activeSource != null) {
                     val module = viewModel.source(activeSource)
-                    sourceResultItems(
-                        state = viewModel.sourceStates[activeSource],
-                        activeMediaId = mediaMetadata?.id,
-                        mediaIdOf = { hit -> BrowsedIds.mediaId(activeSource, hit.id) },
-                        onClick = { index, hit ->
-                            val done = viewModel.sourceStates[activeSource] as? SourceSearchState.Done
-                            if (module != null && done != null) {
-                                if (BrowsedIds.mediaId(activeSource, hit.id) == mediaMetadata?.id) {
-                                    playerConnection.player.togglePlayPause()
-                                } else {
-                                    // the results play as a queue from the one pressed, each asked of its own source by its id
-                                    playerConnection.playQueue(
-                                        ListQueue(
-                                            title = module.searchLabel,
-                                            items = done.hits.map { BrowsedIds.metadataOf(activeSource, it).toMediaItem() },
-                                            startIndex = index,
-                                        ),
-                                    )
-                                }
+                    val openEntry: (com.mochyy.mochymusic.module.SourceEntry) -> Unit = { e ->
+                        navController.navigate(
+                            "source_entry/$activeSource/${e.kind.name}/${android.net.Uri.encode(e.id)}/${android.net.Uri.encode(e.title.ifBlank { "-" })}",
+                        )
+                    }
+                    val playHit: (Int, com.mochyy.mochymusic.module.SearchHit) -> Unit = { index, hit ->
+                        val done = viewModel.sourceStates[activeSource] as? SourceSearchState.Done
+                        if (module != null && done != null) {
+                            if (BrowsedIds.mediaId(activeSource, hit.id) == mediaMetadata?.id) {
+                                playerConnection.player.togglePlayPause()
+                            } else {
+                                // the results play as a queue from the one pressed, each asked of its own source by its id
+                                playerConnection.playQueue(
+                                    ListQueue(
+                                        title = module.searchLabel,
+                                        items = done.hits.map { BrowsedIds.metadataOf(activeSource, it).toMediaItem() },
+                                        startIndex = index,
+                                    ),
+                                )
                             }
-                        },
-                    )
+                        }
+                    }
+                    val chosenKind = if (sourceCat >= 2) activeKinds.getOrNull(sourceCat - 2) else null
+                    if (chosenKind != null) {
+                        entryResultItems(viewModel.entryStates[viewModel.entryKey(activeSource, chosenKind)], "entries_${chosenKind.name}", null, openEntry)
+                    } else if (sourceCat == 0 && activeKinds.isNotEmpty()) {
+                        val tracks = (viewModel.sourceStates[activeSource] as? SourceSearchState.Done)?.hits.orEmpty()
+                        val artists = (viewModel.entryStates[viewModel.entryKey(activeSource, com.mochyy.mochymusic.module.EntryKind.Artist)] as? EntryState.Done)?.entries.orEmpty()
+                        val words = viewModel.query.trim().lowercase()
+                        val topArtist = artists.firstOrNull()?.takeIf { it.title.lowercase().let { t -> t == words || words in t } }
+                        val topTrack = tracks.firstOrNull()
+                        if (topArtist != null) {
+                            item(key = "source_top") {
+                                SourceTopCard(topArtist.artworkUrl, topArtist.title, entryKindLabel(topArtist.kind), circle = true, onClick = { openEntry(topArtist) })
+                            }
+                        } else if (topTrack != null) {
+                            item(key = "source_top") {
+                                SourceTopCard(
+                                    topTrack.artworkUrl, topTrack.title,
+                                    listOf(stringResource(R.string.source_kind_track), topTrack.artist).filter { it.isNotBlank() }.joinToString("  •  "),
+                                    circle = false, onClick = { playHit(0, topTrack) },
+                                )
+                            }
+                        }
+                        item(key = "source_h_tracks") { SearchSectionHeader(title = stringResource(R.string.source_cat_tracks), ruleAbove = false) }
+                        sourceResultItems(
+                            state = viewModel.sourceStates[activeSource],
+                            activeMediaId = mediaMetadata?.id,
+                            mediaIdOf = { hit -> BrowsedIds.mediaId(activeSource, hit.id) },
+                            onClick = playHit,
+                            limit = 5,
+                        )
+                        activeKinds.forEach { kind ->
+                            val st = viewModel.entryStates[viewModel.entryKey(activeSource, kind)]
+                            if (st is EntryState.Done && st.entries.isEmpty()) return@forEach
+                            if (st is EntryState.Failed) return@forEach
+                            item(key = "source_h_${kind.name}") {
+                                SearchSectionHeader(
+                                    title = stringResource(
+                                        when (kind) {
+                                            com.mochyy.mochymusic.module.EntryKind.Artist -> R.string.source_cat_artists
+                                            com.mochyy.mochymusic.module.EntryKind.Album -> R.string.source_cat_albums
+                                            com.mochyy.mochymusic.module.EntryKind.Playlist -> R.string.source_cat_playlists
+                                        },
+                                    ),
+                                    ruleAbove = false,
+                                )
+                            }
+                            entryResultItems(st, "all_${kind.name}", 3, openEntry)
+                        }
+                    } else {
+                        sourceResultItems(
+                            state = viewModel.sourceStates[activeSource],
+                            activeMediaId = mediaMetadata?.id,
+                            mediaIdOf = { hit -> BrowsedIds.mediaId(activeSource, hit.id) },
+                            onClick = playHit,
+                        )
+                    }
                 } else if (searchFilter == null) {
 
                     val page = summary
@@ -412,9 +476,23 @@ fun OnlineSearchResult(
                 SourceAndCategoryRows(
                     sourceLabels = viewModel.sources.map { it.searchLabel },
                     sourceIndex = sourceId?.let { id -> viewModel.sources.indexOfFirst { it.info.id == id } }?.takeIf { it >= 0 },
-                    onSource = { index -> sourceId = index?.let { viewModel.sources[it].info.id } },
+                    onSource = { index -> sourceCat = 0; sourceId = index?.let { viewModel.sources[it].info.id } },
                     selectedIndex = selectedIndex,
                     onCategory = { index -> viewModel.filter.value = SearchCategories[index].second },
+                    sourceCategories = if (activeKinds.isEmpty()) emptyList() else listOf(
+                        stringResource(R.string.source_cat_all),
+                        stringResource(R.string.source_cat_tracks),
+                    ) + activeKinds.map { kind ->
+                        stringResource(
+                            when (kind) {
+                                com.mochyy.mochymusic.module.EntryKind.Artist -> R.string.source_cat_artists
+                                com.mochyy.mochymusic.module.EntryKind.Album -> R.string.source_cat_albums
+                                com.mochyy.mochymusic.module.EntryKind.Playlist -> R.string.source_cat_playlists
+                            },
+                        )
+                    },
+                    sourceCategory = sourceCat,
+                    onSourceCategory = { sourceCat = it },
                 )
             }
         } else SearchGlassTopBar(
@@ -429,9 +507,23 @@ fun OnlineSearchResult(
                 SourceAndCategoryRows(
                     sourceLabels = viewModel.sources.map { it.searchLabel },
                     sourceIndex = sourceId?.let { id -> viewModel.sources.indexOfFirst { it.info.id == id } }?.takeIf { it >= 0 },
-                    onSource = { index -> sourceId = index?.let { viewModel.sources[it].info.id } },
+                    onSource = { index -> sourceCat = 0; sourceId = index?.let { viewModel.sources[it].info.id } },
                     selectedIndex = selectedIndex,
                     onCategory = { index -> viewModel.filter.value = SearchCategories[index].second },
+                    sourceCategories = if (activeKinds.isEmpty()) emptyList() else listOf(
+                        stringResource(R.string.source_cat_all),
+                        stringResource(R.string.source_cat_tracks),
+                    ) + activeKinds.map { kind ->
+                        stringResource(
+                            when (kind) {
+                                com.mochyy.mochymusic.module.EntryKind.Artist -> R.string.source_cat_artists
+                                com.mochyy.mochymusic.module.EntryKind.Album -> R.string.source_cat_albums
+                                com.mochyy.mochymusic.module.EntryKind.Playlist -> R.string.source_cat_playlists
+                            },
+                        )
+                    },
+                    sourceCategory = sourceCat,
+                    onSourceCategory = { sourceCat = it },
                 )
             },
         ) {
@@ -469,6 +561,9 @@ private fun SourceAndCategoryRows(
     onSource: (Int?) -> Unit,
     selectedIndex: Int,
     onCategory: (Int) -> Unit,
+    sourceCategories: List<String> = emptyList(),
+    sourceCategory: Int = 0,
+    onSourceCategory: (Int) -> Unit = {},
 ) {
     Column {
         if (sourceLabels.isNotEmpty()) {
@@ -477,6 +572,10 @@ private fun SourceAndCategoryRows(
                 selectedIndex = (sourceIndex ?: -1) + 1,
                 onSelect = { index -> onSource(if (index == 0) null else index - 1) },
             )
+        }
+        if (sourceIndex != null && sourceCategories.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            BubbleChipRow(labels = sourceCategories, selectedIndex = sourceCategory, onSelect = onSourceCategory)
         }
         if (sourceIndex == null) {
             if (sourceLabels.isNotEmpty()) Spacer(modifier = Modifier.height(8.dp))

@@ -614,6 +614,18 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     composable(
+        route = "source_entry/{moduleId}/{kind}/{entryId}/{title}",
+        arguments = listOf(
+            navArgument("moduleId") { type = NavType.StringType },
+            navArgument("kind") { type = NavType.StringType },
+            navArgument("entryId") { type = NavType.StringType },
+            navArgument("title") { type = NavType.StringType },
+        ),
+    ) {
+        com.mochyy.mochymusic.ui.screens.search.SourceEntryScreen(navController)
+    }
+
+    composable(
         route = "album/{albumId}",
         arguments = listOf(
             navArgument("albumId") {

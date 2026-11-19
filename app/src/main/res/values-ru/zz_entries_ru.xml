@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="source_cat_all">Все</string>
+    <string name="source_cat_tracks">Треки</string>
+    <string name="source_cat_artists">Исполнители</string>
+    <string name="source_cat_albums">Альбомы</string>
+    <string name="source_cat_playlists">Плейлисты</string>
+    <string name="source_top_result">Лучший результат</string>
+    <string name="source_kind_track">Трек</string>
+    <string name="source_kind_artist">Исполнитель</string>
+    <string name="source_kind_album">Альбом</string>
+    <string name="source_kind_playlist">Плейлист</string>
+    <string name="source_nothing_found">Ничего не найдено</string>
+</resources>

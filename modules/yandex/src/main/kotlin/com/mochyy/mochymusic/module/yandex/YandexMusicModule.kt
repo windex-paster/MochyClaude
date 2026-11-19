@@ -4,6 +4,8 @@ import com.mochyy.mochymusic.module.AccountState
 import com.mochyy.mochymusic.module.BrowsableSourceModule
 import com.mochyy.mochymusic.module.CatalogTrack
 import com.mochyy.mochymusic.module.DiagnosticStep
+import com.mochyy.mochymusic.module.EntryKind
+import com.mochyy.mochymusic.module.SourceEntry
 import com.mochyy.mochymusic.module.FieldKind
 import com.mochyy.mochymusic.module.HttpRequest
 import com.mochyy.mochymusic.module.MatchedTrack
@@ -144,6 +146,79 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields, com.mochyy.mochym
         }.getOrNull() ?: return emptyList()
         val own = id.substringBefore(':')
         return tracks.mapNotNull { (it as? JsonObject)?.let(::hitOf) }.filter { it.id.substringBefore(':') != own }.take(limit)
+    }
+
+    override val entryKinds = listOf(EntryKind.Artist, EntryKind.Album, EntryKind.Playlist)
+
+    override suspend fun searchEntries(query: String, kind: EntryKind, limit: Int): List<SourceEntry> {
+        val q = query.trim()
+        if (q.isEmpty()) return emptyList()
+        val type = when (kind) {
+            EntryKind.Artist -> "artist"
+            EntryKind.Album -> "album"
+            EntryKind.Playlist -> "playlist"
+        }
+        val body = apiGet("the search") { "$Api/search?text=${enc(q)}&type=$type&page=0&nocorrect=false" }
+        val results = runCatching {
+            json.parseToJsonElement(body).jsonObject["result"]?.jsonObject?.get("${type}s")?.jsonObject?.get("results")?.jsonArray
+        }.getOrNull() ?: return emptyList()
+        return results.mapNotNull { (it as? JsonObject)?.let { o -> entryOf(kind, o) } }.take(limit)
+    }
+
+    private fun entryOf(kind: EntryKind, o: JsonObject): SourceEntry? {
+        val art = (o.str("coverUri") ?: o.str("ogImage") ?: (o["cover"] as? JsonObject)?.str("uri"))?.let(::coverUrl)
+        return when (kind) {
+            EntryKind.Artist -> {
+                val id = o.str("id") ?: o.long("id")?.toString() ?: return null
+                val genres = (o["genres"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.take(2)
+                SourceEntry(kind, id, o.str("name") ?: return null, genres.joinToString(", "), art)
+            }
+            EntryKind.Album -> {
+                val id = o.str("id") ?: o.long("id")?.toString() ?: return null
+                val by = (o["artists"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonObject)?.str("name") }.joinToString(", ")
+                SourceEntry(kind, id, o.str("title") ?: return null, listOfNotNull(by.takeIf { it.isNotEmpty() }, o.long("year")?.toString()).joinToString(" • "), art)
+            }
+            EntryKind.Playlist -> {
+                val uid = o.str("uid") ?: o.long("uid")?.toString() ?: return null
+                val k = o.str("kind") ?: o.long("kind")?.toString() ?: return null
+                val owner = (o["owner"] as? JsonObject)?.str("name") ?: (o["owner"] as? JsonObject)?.str("login").orEmpty()
+                val count = o.long("trackCount")
+                SourceEntry(kind, "$uid:$k", o.str("title") ?: return null, listOfNotNull(owner.takeIf { it.isNotEmpty() }, count?.let { "$it tracks" }).joinToString(" • "), art)
+            }
+        }
+    }
+
+    override suspend fun entryTracks(kind: EntryKind, id: String): List<SearchHit> {
+        when (kind) {
+            EntryKind.Artist -> {
+                val body = apiGet("the artist's tracks") { "$Api/artists/${enc(id)}/tracks?page=0&page-size=50" }
+                val tracks = json.parseToJsonElement(body).jsonObject["result"]?.jsonObject?.get("tracks")?.jsonArray.orEmpty()
+                return tracks.mapNotNull { (it as? JsonObject)?.let(::hitOf) }
+            }
+            EntryKind.Album -> {
+                val body = apiGet("the album") { "$Api/albums/${enc(id)}/with-tracks" }
+                val volumes = json.parseToJsonElement(body).jsonObject["result"]?.jsonObject?.get("volumes")?.jsonArray.orEmpty()
+                return volumes.flatMap { (it as? JsonArray).orEmpty() }.mapNotNull { (it as? JsonObject)?.let(::hitOf) }
+            }
+            EntryKind.Playlist -> {
+                val uid = id.substringBefore(':')
+                val k = id.substringAfter(':')
+                val body = apiGet("the playlist") { "$Api/users/${enc(uid)}/playlists/${enc(k)}" }
+                val rows = json.parseToJsonElement(body).jsonObject["result"]?.jsonObject?.get("tracks")?.jsonArray.orEmpty()
+                    .mapNotNull { it as? JsonObject }
+                val whole = rows.mapNotNull { it["track"] as? JsonObject }
+                if (whole.size == rows.size) return whole.mapNotNull(::hitOf)
+                // short form: only ids, details in one call
+                val ids = rows.mapNotNull { r ->
+                    val t = r["id"]?.let { (it as? JsonPrimitive)?.contentOrNull } ?: return@mapNotNull null
+                    val album = r.str("albumId") ?: r.long("albumId")?.toString()
+                    if (album != null) "$t:$album" else t
+                }.take(100)
+                if (ids.isEmpty()) return emptyList()
+                val details = apiGet("the playlist's songs") { "$Api/tracks?track-ids=${enc(ids.joinToString(","))}" }
+                return json.parseToJsonElement(details).jsonObject["result"]?.jsonArray.orEmpty().mapNotNull { (it as? JsonObject)?.let(::hitOf) }
+            }
+        }
     }
 
     /** the songs this account has liked, newest first: the ids from the library, then their details in one call */

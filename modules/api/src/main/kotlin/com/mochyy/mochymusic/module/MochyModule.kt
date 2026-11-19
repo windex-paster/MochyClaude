@@ -379,7 +379,27 @@ interface BrowsableSourceModule : SourceModule {
 
     /** songs the service lists as like the one with [id], for its radio; empty when it has none or doesn't say */
     suspend fun related(id: String, limit: Int = 30): List<SearchHit> = emptyList()
+
+    /** the kinds of things besides songs this service's search can find; empty when it only has songs */
+    val entryKinds: List<EntryKind> get() = emptyList()
+
+    /** artists, albums or playlists matching [query] */
+    suspend fun searchEntries(query: String, kind: EntryKind, limit: Int = 20): List<SourceEntry> = emptyList()
+
+    /** the songs of an artist, album or playlist, by the [SourceEntry.id] its search gave */
+    suspend fun entryTracks(kind: EntryKind, id: String): List<SearchHit> = emptyList()
 }
+
+enum class EntryKind { Artist, Album, Playlist }
+
+/** an artist, album or playlist of a service's own search */
+data class SourceEntry(
+    val kind: EntryKind,
+    val id: String,
+    val title: String,
+    val subtitle: String = "",
+    val artworkUrl: String? = null,
+)
 
 /** a service that couldn't be asked: offline, blocked, or its keys gone stale */
 class ModuleUnavailable(message: String) : Exception(message)

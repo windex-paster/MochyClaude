@@ -52,6 +52,31 @@ constructor(
 
     fun source(id: String): BrowsableSourceModule? = sourceModules.browsable(id)
 
+    // artists, albums and playlists per source and kind, asked for when their chip or the "All" view needs them
+    val entryStates = mutableStateMapOf<String, com.mochyy.mochymusic.ui.screens.search.EntryState>()
+
+    fun entryKey(moduleId: String, kind: com.mochyy.mochymusic.module.EntryKind) = "$moduleId|${kind.name}"
+
+    fun loadEntries(moduleId: String, kind: com.mochyy.mochymusic.module.EntryKind) {
+        val key = entryKey(moduleId, kind)
+        val current = entryStates[key]
+        if (current is com.mochyy.mochymusic.ui.screens.search.EntryState.Loading || current is com.mochyy.mochymusic.ui.screens.search.EntryState.Done) return
+        val module = source(moduleId) ?: return
+        entryStates[key] = com.mochyy.mochymusic.ui.screens.search.EntryState.Loading
+        viewModelScope.launch {
+            entryStates[key] = runCatching {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { module.searchEntries(query, kind) }
+            }.fold(
+                onSuccess = { com.mochyy.mochymusic.ui.screens.search.EntryState.Done(it) },
+                onFailure = {
+                    if (it is kotlinx.coroutines.CancellationException) throw it
+                    reportException(it)
+                    com.mochyy.mochymusic.ui.screens.search.EntryState.Failed(it.message ?: "no answer")
+                },
+            )
+        }
+    }
+
     /** searches [moduleId] for the page's query once; a failed one is tried again when its chip is opened again */
     fun loadSource(moduleId: String) {
         val current = sourceStates[moduleId]

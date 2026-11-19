@@ -4,6 +4,8 @@ import com.mochyy.mochymusic.module.AccountState
 import com.mochyy.mochymusic.module.BrowsableSourceModule
 import com.mochyy.mochymusic.module.CatalogTrack
 import com.mochyy.mochymusic.module.DiagnosticStep
+import com.mochyy.mochymusic.module.EntryKind
+import com.mochyy.mochymusic.module.SourceEntry
 import com.mochyy.mochymusic.module.FieldKind
 import com.mochyy.mochymusic.module.HttpRequest
 import com.mochyy.mochymusic.module.MatchedTrack
@@ -117,6 +119,65 @@ class SoundCloudModule : BrowsableSourceModule, ModuleFields, com.mochyy.mochymu
             "$Api/tracks/${enc(id)}/related?limit=$limit&client_id=$cid"
         }
         return parseSearch(body).filter { it.id != id }
+    }
+
+    override val entryKinds = listOf(EntryKind.Artist, EntryKind.Album, EntryKind.Playlist)
+
+    override suspend fun searchEntries(query: String, kind: EntryKind, limit: Int): List<SourceEntry> {
+        val q = query.trim()
+        if (q.isEmpty()) return emptyList()
+        val path = when (kind) {
+            EntryKind.Artist -> "users"
+            EntryKind.Album -> "albums"
+            EntryKind.Playlist -> "playlists_without_albums"
+        }
+        val body = apiGet("the search") { cid -> "$Api/search/$path?q=${enc(q)}&limit=$limit&client_id=$cid" }
+        val items = runCatching { json.parseToJsonElement(body).jsonObject["collection"]?.jsonArray }.getOrNull() ?: return emptyList()
+        return items.mapNotNull { (it as? JsonObject)?.let { o -> entryOf(kind, o) } }
+    }
+
+    private fun entryOf(kind: EntryKind, o: JsonObject): SourceEntry? {
+        val id = o.long("id") ?: return null
+        return if (kind == EntryKind.Artist) {
+            val name = o.str("username") ?: return null
+            val fans = o.long("followers_count")
+            SourceEntry(kind, id.toString(), name, fans?.let { "$it followers" }.orEmpty(), o.str("avatar_url")?.let(::biggerArt))
+        } else {
+            val title = o.str("title") ?: return null
+            val owner = o.obj("user")?.str("username").orEmpty()
+            val count = o.long("track_count")
+            SourceEntry(
+                kind, id.toString(), title,
+                listOfNotNull(owner.takeIf { it.isNotEmpty() }, count?.let { "$it tracks" }).joinToString(" • "),
+                (o.str("artwork_url") ?: o.obj("user")?.str("avatar_url"))?.let(::biggerArt),
+            )
+        }
+    }
+
+    override suspend fun entryTracks(kind: EntryKind, id: String): List<SearchHit> {
+        if (kind == EntryKind.Artist) {
+            val body = apiGet("the artist's tracks") { cid -> "$Api/users/${enc(id)}/tracks?limit=50&client_id=$cid" }
+            return parseSearch(body)
+        }
+        val body = apiGet("the playlist") { cid -> "$Api/playlists/${enc(id)}?client_id=$cid" }
+        val tracks = json.parseToJsonElement(body).jsonObject["tracks"] as? JsonArray ?: return emptyList()
+        val rows = tracks.mapNotNull { it as? JsonObject }
+        // SoundCloud sends only the first few tracks whole and the rest as bare ids: ask for those in one go
+        val bare = rows.filter { it.str("title") == null }.mapNotNull { it.long("id") }.take(100)
+        val filled = HashMap<Long, JsonObject>()
+        if (bare.isNotEmpty()) {
+            runCatching {
+                val more = apiGet("the playlist's tracks") { cid -> "$Api/tracks?ids=${bare.joinToString(",")}&client_id=$cid" }
+                (json.parseToJsonElement(more) as? JsonArray).orEmpty().forEach { e ->
+                    (e as? JsonObject)?.let { t -> t.long("id")?.let { filled[it] = t } }
+                }
+            }
+        }
+        if (seenTracks.size > 300) seenTracks.clear()
+        return rows.mapNotNull { row ->
+            val track = if (row.str("title") != null) row else row.long("id")?.let { filled[it] } ?: return@mapNotNull null
+            hitOf(track)?.also { seenTracks[it.id] = track }
+        }
     }
 
     internal fun parseSearch(body: String): List<SearchHit> {
