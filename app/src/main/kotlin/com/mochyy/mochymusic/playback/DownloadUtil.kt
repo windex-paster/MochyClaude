@@ -337,15 +337,27 @@ constructor(
     /** the first module in the download order with a whole file of [mediaId]; null when youtube comes first or nothing else has it */
     private fun moduleDownload(mediaId: String): ModuleDownload? {
         moduleDownloads[mediaId]?.let { return it }
-        val song = runBlocking(Dispatchers.IO) { database.song(mediaId).first() } ?: return null
-        val track = TrackQuery(
-            title = song.song.title,
-            artists = song.artists.map { it.name },
-            album = song.song.albumName ?: song.album?.title,
-            durationMs = song.song.duration.takeIf { it > 0 }?.times(1000L),
-        )
-        val route = runBlocking(Dispatchers.IO) { sourceModules.downloadRoute(track, failedProviders[mediaId].orEmpty()) }
-        val (module, stream) = route as? SourceModules.Route.Module ?: return null
+        val song = runBlocking(Dispatchers.IO) { database.song(mediaId).first() }
+        val browsed = com.mochyy.mochymusic.modules.BrowsedIds.parse(mediaId)
+        val (module: com.mochyy.mochymusic.module.SourceModule, stream: com.mochyy.mochymusic.module.SourceStream) = if (browsed != null) {
+            // a song from a source's own search (SoundCloud, Yandex): that source has the file, and YouTube never heard of it
+            val source = sourceModules.browsable(browsed.first) ?: return null
+            val found = runBlocking(Dispatchers.IO) { source.streamFor(browsed.second, sourceModules.picks(browsed.first)) }
+            val file = (found as? com.mochyy.mochymusic.module.ResolveResult.Found)?.stream
+                ?: throw java.io.IOException("${source.info.name} has no file to download for this song")
+            source to file
+        } else {
+            val known = song ?: return null
+            val track = TrackQuery(
+                title = known.song.title,
+                artists = known.artists.map { it.name },
+                album = known.song.albumName ?: known.album?.title,
+                durationMs = known.song.duration.takeIf { it > 0 }?.times(1000L),
+            )
+            val route = runBlocking(Dispatchers.IO) { sourceModules.downloadRoute(track, failedProviders[mediaId].orEmpty()) }
+            val found = route as? SourceModules.Route.Module ?: return null
+            found.module to found.stream
+        }
         val (mimeType, codecs) = savedFormatOf(stream.codec)
 
         database.query {
@@ -364,7 +376,7 @@ constructor(
                     playbackUrl = null,
                 ),
             )
-            if (song.song.dateDownload == null) upsert(song.song.copy(dateDownload = LocalDateTime.now()))
+            if (song != null && song.song.dateDownload == null) upsert(song.song.copy(dateDownload = LocalDateTime.now()))
         }
         return ModuleDownload(module.info.id, stream.url, stream.headers).also { moduleDownloads[mediaId] = it }
     }

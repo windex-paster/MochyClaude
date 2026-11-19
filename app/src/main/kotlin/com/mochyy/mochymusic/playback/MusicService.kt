@@ -2525,23 +2525,30 @@ class MusicService :
         title: String,
         generation: Int,
     ) {
-        // the song's own station, the same one youtube music's "start radio" plays, not whatever "up next" happened to be
-        val radioQueue = YouTubeQueue(WatchEndpoint(videoId = currentMediaId, playlistId = "RDAMVM$currentMediaId"))
         val hideExplicit = dataStore.get(HideExplicitKey, false)
         val hideVideoSongs = dataStore.get(HideVideoSongsKey, false)
-        var moreFrom: Queue = radioQueue
-        val loaded = try {
-            withContext(Dispatchers.IO) {
-                radioQueue.getInitialStatus()
-                    .filterExplicit(hideExplicit)
-                    .filterVideoSongs(hideVideoSongs)
-                    .items
+        var moreFrom: Queue = EmptyQueue
+        val browsed = com.mochyy.mochymusic.modules.BrowsedIds.parse(currentMediaId)
+        val loaded = if (browsed != null) {
+            // a song from SoundCloud or Yandex: its own service's similar songs, since YouTube has no station for its id
+            browsedRadio(browsed.first, browsed.second, player.currentMetadata?.artists?.firstOrNull()?.name)
+        } else {
+            // the song's own station, the same one youtube music's "start radio" plays, not whatever "up next" happened to be
+            val radioQueue = YouTubeQueue(WatchEndpoint(videoId = currentMediaId, playlistId = "RDAMVM$currentMediaId"))
+            moreFrom = radioQueue
+            try {
+                withContext(Dispatchers.IO) {
+                    radioQueue.getInitialStatus()
+                        .filterExplicit(hideExplicit)
+                        .filterVideoSongs(hideVideoSongs)
+                        .items
+                }
+            } catch (e: Exception) {
+                Timber.tag(TAG).w(e, "The radio for $currentMediaId didn't load, trying its related songs")
+                // the station's pages don't follow related songs, so infinite queue carries these on instead
+                moreFrom = EmptyQueue
+                relatedSongs(currentMediaId, hideExplicit, hideVideoSongs)
             }
-        } catch (e: Exception) {
-            Timber.tag(TAG).w(e, "The radio for $currentMediaId didn't load, trying its related songs")
-            // the station's pages don't follow related songs, so infinite queue carries these on instead
-            moreFrom = EmptyQueue
-            relatedSongs(currentMediaId, hideExplicit, hideVideoSongs)
         }
         val radioItems = loaded.filter { it.mediaId != currentMediaId && it.mediaId !in NotRecommended }
         if (generation != queueGeneration) return
@@ -2564,6 +2571,19 @@ class MusicService :
         queueTitle = getString(R.string.radio_queue_title, title)
         showBanner(getString(R.string.radio_started, title))
         if (dataStore.get(PersistentQueueKey, true)) saveQueueToDisk()
+    }
+
+    // the radio of a song from a source's own search: that service's similar songs, or when it has none its other songs by the same artist
+    private suspend fun browsedRadio(moduleId: String, sourceId: String, artist: String?): List<MediaItem> = withContext(Dispatchers.IO) {
+        val module = sourceModules.browsable(moduleId) ?: return@withContext emptyList()
+        var hits = runCatching { module.related(sourceId, 30) }
+            .onFailure { Timber.tag(TAG).w(it, "$moduleId has no related songs for $sourceId") }
+            .getOrDefault(emptyList())
+        if (hits.size < 5 && !artist.isNullOrBlank() && artist != "Unknown artist") {
+            val byArtist = runCatching { module.search(artist, 30) }.getOrDefault(emptyList())
+            hits = (hits + byArtist).distinctBy { it.id }
+        }
+        hits.map { com.mochyy.mochymusic.modules.BrowsedIds.metadataOf(moduleId, it).toMediaItem() }
     }
 
     // the songs youtube lists as related to [songId], for when its station won't load

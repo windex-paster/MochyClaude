@@ -376,6 +376,9 @@ interface BrowsableSourceModule : SourceModule {
 
     /** a stream for a song of this service's own, by the [SearchHit.id] its search gave */
     suspend fun streamFor(id: String, picks: Map<String, String>): ResolveResult
+
+    /** songs the service lists as like the one with [id], for its radio; empty when it has none or doesn't say */
+    suspend fun related(id: String, limit: Int = 30): List<SearchHit> = emptyList()
 }
 
 /** a service that couldn't be asked: offline, blocked, or its keys gone stale */

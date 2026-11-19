@@ -112,6 +112,13 @@ class SoundCloudModule : BrowsableSourceModule, ModuleFields, com.mochyy.mochymu
         return parseSearch(body)
     }
 
+    override suspend fun related(id: String, limit: Int): List<SearchHit> {
+        val body = apiGet("the related songs") { cid ->
+            "$Api/tracks/${enc(id)}/related?limit=$limit&client_id=$cid"
+        }
+        return parseSearch(body).filter { it.id != id }
+    }
+
     internal fun parseSearch(body: String): List<SearchHit> {
         val items = runCatching { json.parseToJsonElement(body).jsonObject["collection"]?.jsonArray }.getOrNull()
             ?: return emptyList()

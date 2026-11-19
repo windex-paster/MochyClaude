@@ -137,6 +137,15 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields, com.mochyy.mochym
         return parseSearch(body).take(limit)
     }
 
+    override suspend fun related(id: String, limit: Int): List<SearchHit> {
+        val body = apiGet("the similar songs") { "$Api/tracks/${enc(id)}/similar" }
+        val tracks = runCatching {
+            json.parseToJsonElement(body).jsonObject["result"]?.jsonObject?.get("similarTracks")?.jsonArray
+        }.getOrNull() ?: return emptyList()
+        val own = id.substringBefore(':')
+        return tracks.mapNotNull { (it as? JsonObject)?.let(::hitOf) }.filter { it.id.substringBefore(':') != own }.take(limit)
+    }
+
     /** the songs this account has liked, newest first: the ids from the library, then their details in one call */
     private fun likedTracks(limit: Int): List<SearchHit> {
         val status = apiGet("the account") { "$Api/account/status" }
