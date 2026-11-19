@@ -20,6 +20,7 @@ import com.mochyy.mochymusic.constants.HideVideoSongsKey
 import com.mochyy.mochymusic.constants.HideYoutubeShortsKey
 import com.mochyy.mochymusic.models.ItemsPage
 import com.mochyy.mochymusic.module.BrowsableSourceModule
+import kotlinx.coroutines.async
 import com.mochyy.mochymusic.modules.SourceModules
 import com.mochyy.mochymusic.ui.screens.search.SourceSearchState
 import com.mochyy.mochymusic.utils.dataStore
@@ -68,7 +69,32 @@ constructor(
                         SourceSearchState.Failed(it.message ?: "no answer")
                     },
                 )
+            // the exact matches show at once; songs like them and more by the same artists follow underneath
+            val shown = (sourceStates[moduleId] as? SourceSearchState.Done)?.hits ?: return@launch
+            if (shown.isEmpty() || shown.size > 40) return@launch
+            val more = runCatching {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { moreLikeThese(module, shown) }
+            }.getOrDefault(emptyList())
+            if (more.isNotEmpty() && sourceStates[moduleId] is SourceSearchState.Done) {
+                sourceStates[moduleId] = SourceSearchState.Done(shown + more)
+            }
         }
+    }
+
+    // similar songs of the top results, then the top artists' other songs, without repeating what's already listed
+    private suspend fun moreLikeThese(
+        module: BrowsableSourceModule,
+        shown: List<com.mochyy.mochymusic.module.SearchHit>,
+    ): List<com.mochyy.mochymusic.module.SearchHit> = kotlinx.coroutines.coroutineScope {
+        val have = shown.mapTo(HashSet()) { it.id }
+        val similar = shown.take(2).map { hit ->
+            async { runCatching { module.related(hit.id, 20) }.getOrDefault(emptyList()) }
+        }
+        val artists = shown.map { it.artist.trim() }.filter { it.isNotEmpty() }.distinct().take(2).map { name ->
+            async { runCatching { module.search(name, 20) }.getOrDefault(emptyList()) }
+        }
+        // the artists' own songs first: they're what someone searching one song wants next
+        (artists + similar).flatMap { it.await() }.filter { have.add(it.id) }.take(60)
     }
 
     init {
