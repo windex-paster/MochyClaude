@@ -251,4 +251,12 @@
     <string name="settings_floating_lyrics">Плавающие тексты</string>
     <string name="settings_floating_lyrics_desc">Держать поющуюся строку в маленьком пузыре поверх других приложений</string>
     <string name="settings_floating_lyrics_detail">Нажмите на обложку, чтобы включить или поставить на паузу, или удерживайте, чтобы открыть Mochy. Перетащите, и пузырь прилипнет к ближайшему краю. Бросьте его на «Закрыть», чтобы скрыть до возвращения в Mochy, или на «Больше не показывать», чтобы выключить.</string>
+    <string name="nw_widget_cover_glass">Квадрат с обложкой · Стекло</string>
+    <string name="nw_widget_cover_default">Квадрат с обложкой · Обычный</string>
+    <string name="nw_widget_player_glass">Квадрат-плеер · Стекло</string>
+    <string name="nw_widget_player_default">Квадрат-плеер · Обычный</string>
+    <string name="nw_widget_cover_glass_desc">Квадрат с обложкой во весь размер, треком и кнопкой play в матовой рамке</string>
+    <string name="nw_widget_cover_default_desc">Квадрат с обложкой во весь размер, треком и кнопкой play</string>
+    <string name="nw_widget_player_glass_desc">Матовый квадрат с треком и кнопками: назад, play, вперёд и лайк</string>
+    <string name="nw_widget_player_default_desc">Тёмный квадрат с треком и кнопками: назад, play, вперёд и лайк</string>
 </resources>

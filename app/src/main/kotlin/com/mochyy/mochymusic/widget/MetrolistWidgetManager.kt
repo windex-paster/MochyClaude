@@ -354,7 +354,9 @@ class MochyWidgetManager @Inject constructor(
     }
 
     /** one of the pill and card widgets, in its glass or default look */
-    private class StyledKind(val receiver: Class<*>, val layout: Int, val pill: Boolean)
+    private enum class StyledShape { Pill, Card, Cover, Player }
+
+    private class StyledKind(val receiver: Class<*>, val layout: Int, val shape: StyledShape)
 
     private fun createStyledRemoteViews(
         kind: StyledKind,
@@ -367,7 +369,7 @@ class MochyWidgetManager @Inject constructor(
     ): RemoteViews {
         val views = RemoteViews(context.packageName, kind.layout)
         val playIcon = if (isPlaying) R.drawable.ic_nw_pause else R.drawable.ic_nw_play
-        if (kind.pill) {
+        if (kind.shape == StyledShape.Pill) {
             if (circularAlbumArt != null) {
                 views.setImageViewBitmap(R.id.nw_pill_cover, circularAlbumArt)
                 views.setViewPadding(R.id.nw_pill_cover, 0, 0, 0, 0)
@@ -379,6 +381,30 @@ class MochyWidgetManager @Inject constructor(
             views.setOnClickPendingIntent(R.id.nw_pill_play, getPlayPauseIntent())
             views.setOnClickPendingIntent(R.id.nw_pill_next, getStyledIntent(MusicWidgetReceiver.ACTION_NEXT, 7))
             views.setOnClickPendingIntent(R.id.nw_pill_like, getLikeIntent())
+        } else if (kind.shape == StyledShape.Cover) {
+            views.setTextViewText(R.id.nw_sq_title, title.ifBlank { context.getString(R.string.nw_widget_idle_title) })
+            views.setTextViewText(R.id.nw_sq_artist, artist.ifBlank { context.getString(R.string.nw_widget_idle_artist) })
+            if (albumArt != null) {
+                views.setImageViewBitmap(R.id.nw_sq_cover, getRoundedCornerBitmap(albumArt, 56f))
+                views.setViewPadding(R.id.nw_sq_cover, 0, 0, 0, 0)
+            }
+            views.setImageViewResource(R.id.nw_sq_play, playIcon)
+            views.setOnClickPendingIntent(R.id.nw_sq_cover, getOpenAppIntent())
+            views.setOnClickPendingIntent(R.id.nw_sq_play, getPlayPauseIntent())
+        } else if (kind.shape == StyledShape.Player) {
+            views.setTextViewText(R.id.nw_sb_title, title.ifBlank { context.getString(R.string.nw_widget_idle_title) })
+            views.setTextViewText(R.id.nw_sb_artist, artist.ifBlank { context.getString(R.string.nw_widget_idle_artist) })
+            if (circularAlbumArt != null) {
+                views.setImageViewBitmap(R.id.nw_sb_cover, circularAlbumArt)
+                views.setViewPadding(R.id.nw_sb_cover, 0, 0, 0, 0)
+            }
+            views.setImageViewResource(R.id.nw_sb_play, playIcon)
+            views.setImageViewResource(R.id.nw_sb_like, if (isLiked) R.drawable.ic_nw_heart else R.drawable.ic_nw_heart_outline)
+            views.setOnClickPendingIntent(R.id.nw_sb_cover, getOpenAppIntent())
+            views.setOnClickPendingIntent(R.id.nw_sb_prev, getStyledIntent(MusicWidgetReceiver.ACTION_PREVIOUS, 6))
+            views.setOnClickPendingIntent(R.id.nw_sb_play, getPlayPauseIntent())
+            views.setOnClickPendingIntent(R.id.nw_sb_next, getStyledIntent(MusicWidgetReceiver.ACTION_NEXT, 7))
+            views.setOnClickPendingIntent(R.id.nw_sb_like, getLikeIntent())
         } else {
             views.setTextViewText(R.id.nw_card_title, title.ifBlank { context.getString(R.string.nw_widget_idle_title) })
             views.setTextViewText(R.id.nw_card_artist, artist.ifBlank { context.getString(R.string.nw_widget_idle_artist) })
@@ -494,10 +520,14 @@ class MochyWidgetManager @Inject constructor(
 
     private companion object {
         val StyledKinds = listOf(
-            StyledKind(PillGlassWidgetReceiver::class.java, R.layout.widget_pill_glass, pill = true),
-            StyledKind(PillDefaultWidgetReceiver::class.java, R.layout.widget_pill_default, pill = true),
-            StyledKind(CardGlassWidgetReceiver::class.java, R.layout.widget_card_glass, pill = false),
-            StyledKind(CardDefaultWidgetReceiver::class.java, R.layout.widget_card_default, pill = false),
+            StyledKind(PillGlassWidgetReceiver::class.java, R.layout.widget_pill_glass, StyledShape.Pill),
+            StyledKind(PillDefaultWidgetReceiver::class.java, R.layout.widget_pill_default, StyledShape.Pill),
+            StyledKind(CardGlassWidgetReceiver::class.java, R.layout.widget_card_glass, StyledShape.Card),
+            StyledKind(CardDefaultWidgetReceiver::class.java, R.layout.widget_card_default, StyledShape.Card),
+            StyledKind(CoverGlassWidgetReceiver::class.java, R.layout.widget_cover_glass, StyledShape.Cover),
+            StyledKind(CoverDefaultWidgetReceiver::class.java, R.layout.widget_cover_default, StyledShape.Cover),
+            StyledKind(PlayerGlassWidgetReceiver::class.java, R.layout.widget_player_glass, StyledShape.Player),
+            StyledKind(PlayerDefaultWidgetReceiver::class.java, R.layout.widget_player_default, StyledShape.Player),
         )
     }
 }

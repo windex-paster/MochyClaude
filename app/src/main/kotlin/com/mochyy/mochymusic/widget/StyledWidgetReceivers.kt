@@ -1,4 +1,4 @@
-// StyledWidgetReceivers.kt: the controls pill and the player card, each as a glass and a default widget
+// StyledWidgetReceivers.kt: the controls pill, the player card and the two squares, each as a glass and a default widget
 
 package com.mochyy.mochymusic.widget
 
@@ -37,3 +37,7 @@ class PillGlassWidgetReceiver : StyledWidgetReceiver()
 class PillDefaultWidgetReceiver : StyledWidgetReceiver()
 class CardGlassWidgetReceiver : StyledWidgetReceiver()
 class CardDefaultWidgetReceiver : StyledWidgetReceiver()
+class CoverGlassWidgetReceiver : StyledWidgetReceiver()
+class CoverDefaultWidgetReceiver : StyledWidgetReceiver()
+class PlayerGlassWidgetReceiver : StyledWidgetReceiver()
+class PlayerDefaultWidgetReceiver : StyledWidgetReceiver()

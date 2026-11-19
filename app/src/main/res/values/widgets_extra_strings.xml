@@ -10,4 +10,12 @@
     <string name="nw_widget_card_default_desc">A dark card with the cover, the song and controls</string>
     <string name="nw_widget_idle_title">Mochy</string>
     <string name="nw_widget_idle_artist">Play something</string>
+    <string name="nw_widget_cover_glass">Cover square · Glass</string>
+    <string name="nw_widget_cover_default">Cover square · Default</string>
+    <string name="nw_widget_player_glass">Player square · Glass</string>
+    <string name="nw_widget_player_default">Player square · Default</string>
+    <string name="nw_widget_cover_glass_desc">A square with the whole cover, the song and a play button, in a frosted frame</string>
+    <string name="nw_widget_cover_default_desc">A square with the whole cover, the song and a play button</string>
+    <string name="nw_widget_player_glass_desc">A frosted square with the song and previous, play, next and like</string>
+    <string name="nw_widget_player_default_desc">A dark square with the song and previous, play, next and like</string>
 </resources>
