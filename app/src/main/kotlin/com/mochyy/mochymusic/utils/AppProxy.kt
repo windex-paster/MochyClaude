@@ -54,6 +54,8 @@ object AppProxy {
         val host = uri?.host ?: return null
         // the TV, the car and other phones sit on the home network, never behind the proxy
         if (isLocalHost(host)) return listOf(Proxy.NO_PROXY)
+        // yandex answers 451 to an address outside its countries, so a proxy abroad would shut it out
+        if (isYandexHost(host)) return listOf(Proxy.NO_PROXY)
         return listOf(Proxy(config.type, config.address))
     }
 
@@ -76,6 +78,13 @@ object AppProxy {
     private val installed by lazy { ProxySelector.setDefault(everywhere) }
 
     private val privateIpv4 = Regex("""^(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)""")
+
+    private val yandexDomains = listOf("yandex.net", "yandex.ru", "yandex.com", "yandex.by", "yandex.kz", "ya.ru")
+
+    private fun isYandexHost(host: String): Boolean {
+        val h = host.lowercase()
+        return yandexDomains.any { h == it || h.endsWith(".$it") }
+    }
 
     private fun isLocalHost(host: String): Boolean {
         val h = host.trim('[', ']').lowercase()

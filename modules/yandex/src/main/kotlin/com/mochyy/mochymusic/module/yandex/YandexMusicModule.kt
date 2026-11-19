@@ -423,6 +423,7 @@ class YandexMusicModule : BrowsableSourceModule, ModuleFields, com.mochyy.mochym
                 throw ModuleUnavailable("Yandex turned down the token ($what, ${response.code}$why). It may be cut short, expired, or from another app; get a new one")
             }
             response.code == 404 -> throw ModuleUnavailable("Yandex has no $what (404)")
+            response.code == 451 -> throw ModuleUnavailable("Yandex refuses this connection's region (451). A VPN or proxy that exits outside Russia does that: turn it off for Mochy, or pick a Russian exit")
             else -> throw ModuleUnavailable("Yandex answered ${response.code} for $what")
         }
     }
