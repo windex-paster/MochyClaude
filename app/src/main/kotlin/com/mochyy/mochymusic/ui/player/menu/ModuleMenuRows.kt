@@ -83,7 +83,7 @@ private fun ModuleMenuRow(title: String, picture: Any?, enabled: Boolean, onClic
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(MenuRowSurface)
+            .background(menuRowSurface())
             .clickable(enabled = enabled, interactionSource = remember { MutableInteractionSource() }, indication = RemoteFocus, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 14.dp),
     ) {

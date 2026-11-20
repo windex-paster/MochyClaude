@@ -144,7 +144,9 @@ fun PlayerActionMenu(
     // peeks above "Change device output", a lyrics tool, etc. instead of being dimmed under it.
     val sheetStack = rememberMenuSheetStack()
 
-    CompositionLocalProvider(LocalMenuSheetStack provides sheetStack) {
+    // opened from a glass module's player, the menu is glass too
+    val glass = com.mochyy.mochymusic.modules.skin.ActiveSkin.current?.player != null
+    CompositionLocalProvider(LocalMenuSheetStack provides sheetStack, LocalMenuSheetGlass provides glass) {
     MenuSheetSurface(
         onDismiss = onDismiss,
         modifier = modifier,
@@ -497,7 +499,7 @@ internal fun MenuRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(MenuRowSurface)
+            .background(menuRowSurface())
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
@@ -623,7 +625,7 @@ private fun DeviceVolumeRow() {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(MenuRowSurface)
+            .background(menuRowSurface())
             .padding(horizontal = 14.dp, vertical = 14.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

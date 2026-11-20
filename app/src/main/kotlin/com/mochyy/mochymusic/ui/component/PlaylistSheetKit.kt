@@ -56,6 +56,7 @@ import coil3.compose.AsyncImage
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.ui.utils.resize
 import com.mochyy.mochymusic.ui.player.menu.MenuRowSurface
+import com.mochyy.mochymusic.ui.player.menu.menuRowSurface
 
 /*
  * The small pieces the sheets are built from, taken from the reference mocks: a labelled field, a
@@ -118,7 +119,7 @@ internal fun SheetTextField(
                     .fillMaxWidth()
                     .heightIn(min = ControlMinHeight)
                     .clip(RoundedCornerShape(18.dp))
-                    .background(MenuRowSurface)
+                    .background(menuRowSurface())
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 if (leading != null) {
@@ -227,7 +228,7 @@ internal fun SheetOptionRow(
             .fillMaxWidth()
             .graphicsLayer { alpha = if (enabled) 1f else 0.35f }
             .clip(RoundedCornerShape(16.dp))
-            .background(MenuRowSurface)
+            .background(menuRowSurface())
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
@@ -317,7 +318,7 @@ internal fun SheetHeader(
             modifier = Modifier
                 .size(60.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(MenuRowSurface),
+                .background(menuRowSurface()),
         )
         Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -432,7 +433,7 @@ internal fun SheetActionCard(
             .heightIn(min = ActionCardMinHeight)
             .graphicsLayer { alpha = if (enabled) 1f else 0.35f }
             .clip(RoundedCornerShape(18.dp))
-            .background(MenuRowSurface)
+            .background(menuRowSurface())
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
@@ -510,7 +511,7 @@ internal fun SheetSearchLauncher(
             .fillMaxWidth()
             .heightIn(min = ControlMinHeight)
             .clip(RoundedCornerShape(18.dp))
-            .background(MenuRowSurface)
+            .background(menuRowSurface())
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = RemoteFocus,
