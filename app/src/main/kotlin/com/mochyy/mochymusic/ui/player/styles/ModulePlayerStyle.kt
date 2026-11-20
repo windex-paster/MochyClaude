@@ -10,7 +10,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
+import com.mochyy.mochymusic.modules.skin.ButtonKind
+import com.mochyy.mochymusic.modules.skin.SkinTarget
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -670,7 +674,7 @@ internal fun SkinPanelOverlay(context: SkinContext) {
     val blocks = remember(layout) { layout.blocks.filter { it.isPagesPanel() } }
     if (blocks.isEmpty()) return
     val overlay = remember(context) { context.asOverlay() }
-    val nav = androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val nav = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     Column(
         modifier = Modifier
             .fillMaxWidth()
