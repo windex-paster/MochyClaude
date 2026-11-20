@@ -3,6 +3,7 @@
 package com.mochyy.mochymusic.ui.player.styles
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -107,7 +108,7 @@ internal fun Modifier.onSwipeUp(enabled: Boolean, onUp: () -> Unit): Modifier =
         val latest by androidx.compose.runtime.rememberUpdatedState(onUp)
         pointerInput(Unit) {
             var total = 0f
-            androidx.compose.foundation.gestures.detectVerticalDragGestures(
+            detectVerticalDragGestures(
                 onDragStart = { total = 0f },
                 onDragEnd = { if (total < -UpDistance.toPx()) latest() },
                 onDragCancel = { total = 0f },
