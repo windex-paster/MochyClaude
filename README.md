@@ -206,6 +206,18 @@ Mochy is an independent, unofficial project made for personal and educational us
 
 ---
 
+<!-- mochy-credit:start · f208ad37 -->
+## Forking Mochy
+
+Forks are welcome, that's what open source is for! Just two asks:
+
+- **Keep the credit.** If you rename it, please keep credits of this app, the other project that helped mochy possible.
+- **Keep it free.** Mochy is not monetized and never will be. Please don't put features behind a paywall. A donation page is fine.
+
+<!-- mochy-credit:end -->
+
+---
+
 ## These incredible project helped mochy a lot! check them out too :3
 
 - **ViviMusic** by [vivizzz007Z](https://github.com/vivizzz007Z) )[Their repo](https://github.com/vivizzz007/vivi-music)) -- For the base app. This app is a fork from this project.
