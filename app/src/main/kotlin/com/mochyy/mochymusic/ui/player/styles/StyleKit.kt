@@ -446,6 +446,8 @@ class StyleActions(
     val onClose: () -> Unit = {},
     // opens the queue over the style, for the styles whose menu offers it (the poster)
     val onQueue: (() -> Unit)? = null,
+    // opens the stream's info sheet (codec, bitrate, decoder), for a module's button or panel
+    val onStreamInfo: (() -> Unit)? = null,
     // the rotate item; none in the selector's cards or on a tv
     val turn: StyleTurn? = null,
 )

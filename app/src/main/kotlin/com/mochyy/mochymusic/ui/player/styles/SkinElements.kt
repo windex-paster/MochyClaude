@@ -133,7 +133,7 @@ private fun rememberTargetOn(target: SkinTarget): Boolean {
 
 /** what a tap on a button or a chevron item does */
 @Composable
-private fun rememberTargetRunner(context: SkinContext): (SkinTarget) -> Unit {
+internal fun rememberTargetRunner(context: SkinContext): (SkinTarget) -> Unit {
     val connection = LocalPlayerConnection.current
     val android = LocalContext.current
     return remember(connection, android, context.actions, context.skin) {
@@ -158,6 +158,8 @@ private fun runControl(kind: ButtonKind, connection: PlayerConnection, context: 
         ButtonKind.Menu -> context.openMenu()
         ButtonKind.Customise -> context.openCustomise()
         ButtonKind.Close -> context.actions.onClose()
+        ButtonKind.Queue -> context.actions.onQueue?.invoke()
+        ButtonKind.StreamInfo -> context.actions.onStreamInfo?.invoke()
     }
 }
 
@@ -173,6 +175,8 @@ private fun iconFor(target: SkinTarget, on: Boolean): Int = when ((target as? Sk
     ButtonKind.Menu -> R.drawable.more_horiz
     ButtonKind.Customise -> R.drawable.tune
     ButtonKind.Close -> R.drawable.expand_more
+    ButtonKind.Queue -> R.drawable.queue_music
+    ButtonKind.StreamInfo -> R.drawable.info
     null -> R.drawable.puzzle
 }
 

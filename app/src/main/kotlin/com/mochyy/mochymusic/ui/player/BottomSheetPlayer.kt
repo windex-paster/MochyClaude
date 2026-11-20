@@ -526,6 +526,7 @@ private fun PlayerSheet(
             },
             onClose = { state.collapseSoft() },
             onQueue = { styleQueueOpen = true },
+            onStreamInfo = { if (!studioEngaged) showStreamInfo = true },
             turn = if (onTv) null else styleTurn,
         )
     }

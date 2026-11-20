@@ -331,7 +331,16 @@ internal object SkinPlayerParser {
                 width = o.float("width")?.coerceIn(8f, 600f)?.dp,
                 height = o.float("height")?.coerceIn(8f, 800f)?.dp,
                 shadow = o.bool("shadow") ?: false,
+                tap = tapTarget(o["tap"]),
+                hold = tapTarget(o["hold"]),
             )
+        }
+
+        // "tap": "queue" or "tap": { "action": "queue" } (or a link, a page, a search like a button has)
+        private fun tapTarget(element: JsonElement?): SkinTarget? = when (element) {
+            is JsonObject -> target(element)
+            is JsonPrimitive -> element.contentOrNull?.let { target(JsonObject(mapOf("action" to JsonPrimitive(it)))) }
+            else -> null
         }
 
         // { "type": "path", "d": "M12 2 L22 22 H2 Z", "viewBox": "0 0 24 24", "size": 64, "fill": "accent" }
@@ -438,6 +447,8 @@ internal object SkinPlayerParser {
         "menu" -> ButtonKind.Menu
         "customise", "customize" -> ButtonKind.Customise
         "close" -> ButtonKind.Close
+        "queue", "continue", "upnext" -> ButtonKind.Queue
+        "streaminfo", "stream", "info" -> ButtonKind.StreamInfo
         else -> null
     }
 

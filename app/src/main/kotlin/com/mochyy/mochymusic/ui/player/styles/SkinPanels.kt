@@ -3,7 +3,9 @@
 package com.mochyy.mochymusic.ui.player.styles
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +40,7 @@ import com.mochyy.mochymusic.modules.skin.SkinBlock
 import com.mochyy.mochymusic.ui.component.GlassPillBackground
 import kotlin.math.min
 
+@OptIn(ExperimentalFoundationApi::class)
 /** a panel: frosted glass, a fill or a gradient behind its blocks, a border, round corners, its blocks in a column or a row */
 @Composable
 internal fun SkinBox(block: SkinBlock.Box, context: SkinContext, modifier: Modifier, inRow: Boolean) {
@@ -49,7 +52,17 @@ internal fun SkinBox(block: SkinBlock.Box, context: SkinContext, modifier: Modif
         .then(if (block.shadow) Modifier.shadow(16.dp, shape) else Modifier)
         .clip(shape)
     val glass = context.glass.takeIf { block.glass != null }
-    Box(sized) {
+    // a tap or a long press on the panel itself; the controls inside answer their own touches first
+    val run = rememberTargetRunner(context)
+    val pressable = if (block.tap != null || block.hold != null) {
+        Modifier.combinedClickable(
+            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+            indication = null,
+            onLongClick = block.hold?.let { target -> { run(target) } },
+            onClick = { block.tap?.let(run) },
+        )
+    } else Modifier
+    Box(sized.then(if (context.preview) Modifier else pressable)) {
         if (glass != null) {
             val radius = with(LocalDensity.current) { (block.glass ?: 0f).dp.toPx() }
             // the blur reads past the box's edges and the clip trims it, so nothing bright smears in from an edge
