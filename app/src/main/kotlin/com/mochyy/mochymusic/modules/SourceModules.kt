@@ -144,6 +144,10 @@ class SourceModules @Inject constructor(
             }
         }
 
+    /** the walk for a song of a catalog-only source (Deezer): only the modules that can play, never youtube, since it has no video id to go by */
+    suspend fun routeFromModules(track: TrackQuery?, skip: Set<String>): Route =
+        walk(_order.value.filter { it != YouTubeId }, track, skip, ::isUsable, ::playbackPicks) { _, stream -> DeviceDecoders.canPlay(stream) }
+
     private suspend fun walk(
         order: List<String>,
         track: TrackQuery?,
