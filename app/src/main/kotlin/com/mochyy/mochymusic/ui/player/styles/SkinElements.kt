@@ -160,6 +160,7 @@ private fun runControl(kind: ButtonKind, connection: PlayerConnection, context: 
         ButtonKind.Close -> context.actions.onClose()
         ButtonKind.Queue -> context.actions.onQueue?.invoke()
         ButtonKind.StreamInfo -> context.actions.onStreamInfo?.invoke()
+        ButtonKind.Pages -> context.actions.onPages?.invoke()
     }
 }
 
@@ -177,6 +178,7 @@ private fun iconFor(target: SkinTarget, on: Boolean): Int = when ((target as? Sk
     ButtonKind.Close -> R.drawable.expand_more
     ButtonKind.Queue -> R.drawable.queue_music
     ButtonKind.StreamInfo -> R.drawable.info
+    ButtonKind.Pages -> R.drawable.queue_music
     null -> R.drawable.puzzle
 }
 

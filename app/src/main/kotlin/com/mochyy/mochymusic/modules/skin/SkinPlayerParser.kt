@@ -43,6 +43,7 @@ internal object SkinPlayerParser {
             menuButton = menuButton(o["menuButton"]),
             header = reader.blocks(o["header"], depth = 1).take(MaxHeader),
             scroll = o.bool("scroll") ?: false,
+            swipeUp = reader.tapTarget(o["swipeUp"]),
         )
     }
 
@@ -333,11 +334,12 @@ internal object SkinPlayerParser {
                 shadow = o.bool("shadow") ?: false,
                 tap = tapTarget(o["tap"]),
                 hold = tapTarget(o["hold"]),
+                up = tapTarget(o["up"]),
             )
         }
 
         // "tap": "queue" or "tap": { "action": "queue" } (or a link, a page, a search like a button has)
-        private fun tapTarget(element: JsonElement?): SkinTarget? = when (element) {
+        fun tapTarget(element: JsonElement?): SkinTarget? = when (element) {
             is JsonObject -> target(element)
             is JsonPrimitive -> element.contentOrNull?.let { target(JsonObject(mapOf("action" to JsonPrimitive(it)))) }
             else -> null
@@ -447,6 +449,7 @@ internal object SkinPlayerParser {
         "menu" -> ButtonKind.Menu
         "customise", "customize" -> ButtonKind.Customise
         "close" -> ButtonKind.Close
+        "pages", "nextpage" -> ButtonKind.Pages
         "queue", "continue", "upnext" -> ButtonKind.Queue
         "streaminfo", "stream", "info" -> ButtonKind.StreamInfo
         else -> null

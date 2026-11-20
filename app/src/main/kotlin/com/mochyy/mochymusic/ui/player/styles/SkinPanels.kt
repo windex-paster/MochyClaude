@@ -33,6 +33,9 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.composed
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.mochyy.mochymusic.modules.skin.GradientKind
@@ -62,7 +65,8 @@ internal fun SkinBox(block: SkinBlock.Box, context: SkinContext, modifier: Modif
             onClick = { block.tap?.let(run) },
         )
     } else Modifier
-    Box(sized.then(if (context.preview) Modifier else pressable)) {
+    val swipe = block.up?.let { target -> { run(target) } }
+    Box(sized.then(if (context.preview) Modifier else pressable.onSwipeUp(swipe != null, swipe ?: {}))) {
         if (glass != null) {
             val radius = with(LocalDensity.current) { (block.glass ?: 0f).dp.toPx() }
             // the blur reads past the box's edges and the clip trims it, so nothing bright smears in from an edge
@@ -95,6 +99,24 @@ internal fun SkinBox(block: SkinBlock.Box, context: SkinContext, modifier: Modif
         }
     }
 }
+
+/** a swipe up of a good thumb's length that no child took (a slider or a button keeps its own drags) */
+internal fun Modifier.onSwipeUp(enabled: Boolean, onUp: () -> Unit): Modifier =
+    if (!enabled) this else this.composed {
+        // read at the end of the drag, so a recomposition mid-swipe doesn't restart it
+        val latest by androidx.compose.runtime.rememberUpdatedState(onUp)
+        pointerInput(Unit) {
+            var total = 0f
+            androidx.compose.foundation.gestures.detectVerticalDragGestures(
+                onDragStart = { total = 0f },
+                onDragEnd = { if (total < -UpDistance.toPx()) latest() },
+                onDragCancel = { total = 0f },
+                onVerticalDrag = { _, dy -> total += dy },
+            )
+        }
+    }
+
+private val UpDistance = 56.dp
 
 private fun gradient(colors: List<Color>, kind: GradientKind): Brush {
     if (colors.size == 1) return Brush.linearGradient(listOf(colors[0], colors[0]))

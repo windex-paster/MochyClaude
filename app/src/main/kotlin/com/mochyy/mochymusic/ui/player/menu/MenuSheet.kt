@@ -95,6 +95,13 @@ private val StatusBarGap = 6.dp
 // set where a sheet floats as a card in the middle instead of rising from the bottom edge (the full video mode, turned sideways)
 val LocalMenuSheetFloating = staticCompositionLocalOf { false }
 
+// a sheet drawn as frosted glass over the player instead of solid black (the stream info from a glass skin)
+val LocalMenuSheetGlass = staticCompositionLocalOf { false }
+
+/** the fill of a card on a sheet: the usual gray, or a pale film on glass */
+@Composable
+fun menuRowSurface(): Color = if (LocalMenuSheetGlass.current) Color.White.copy(alpha = 0.09f) else MenuRowSurface
+
 // a floating sheet's gap to the edges, its widest, and its corners
 private val FloatingMargin = 18.dp
 private val FloatingMaxWidth = 360.dp
@@ -196,6 +203,7 @@ fun MenuSheetSurface(
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val stack = LocalMenuSheetStack.current
+    val glassSheet = LocalMenuSheetGlass.current
     val peekPx = with(density) { PeekHeight.toPx() }
     // a floating card is as tall as what's in it and scrolls inside itself; it never grows to a taller detent
     val forcedFloating = LocalMenuSheetFloating.current
@@ -508,7 +516,15 @@ fun MenuSheetSurface(
                         val index = entries.indexOf(entry)
                         if (index >= 0) recede = entries.depthAbove(index).coerceAtMost(1f)
                     }
-                    drawRect(lerp(MenuSurface, MenuRowSurface, recede))
+                    if (glassSheet) {
+                        drawRect(
+                            Brush.verticalGradient(listOf(Color(0xB8262C3C), Color(0xD10D0F16))),
+                        )
+                        // a lit rim along the top edge, like the glass panel's
+                        drawRect(Color.White.copy(alpha = 0.22f), size = androidx.compose.ui.geometry.Size(size.width, 1.5f))
+                    } else {
+                        drawRect(lerp(MenuSurface, MenuRowSurface, recede))
+                    }
                 }
         ) {
             val dragHandle = Modifier.draggable(

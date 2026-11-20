@@ -448,6 +448,8 @@ class StyleActions(
     val onQueue: (() -> Unit)? = null,
     // opens the stream's info sheet (codec, bitrate, decoder), for a module's button or panel
     val onStreamInfo: (() -> Unit)? = null,
+    // one step up the pages over the style: lyrics, then the queue, then back to the cover
+    val onPages: (() -> Unit)? = null,
     // the rotate item; none in the selector's cards or on a tv
     val turn: StyleTurn? = null,
 )

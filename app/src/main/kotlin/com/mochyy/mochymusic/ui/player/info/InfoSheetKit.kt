@@ -113,11 +113,12 @@ internal fun NerdsDivider() {
 
 @Composable
 internal fun InfoCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    val surface = com.mochyy.mochymusic.ui.player.menu.menuRowSurface()
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(CardShape)
-            .background(MenuRowSurface)
+            .background(surface)
             .padding(horizontal = 22.dp, vertical = 20.dp),
         content = content,
     )
@@ -126,12 +127,13 @@ internal fun InfoCard(modifier: Modifier = Modifier, content: @Composable Column
 /** the short line that joins one stats card to the next, like a signal path */
 @Composable
 internal fun CardConnector() {
+    val surface = com.mochyy.mochymusic.ui.player.menu.menuRowSurface()
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Box(
             Modifier
                 .width(4.dp)
                 .height(22.dp)
-                .background(MenuRowSurface),
+                .background(surface),
         )
     }
 }

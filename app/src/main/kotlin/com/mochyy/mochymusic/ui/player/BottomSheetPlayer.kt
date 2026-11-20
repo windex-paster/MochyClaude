@@ -317,6 +317,8 @@ private fun PlayerSheet(
     // The title and artist's sheet: the artists, the album, about the song
     var showSongDetails by remember { mutableStateOf(false) }
     var showStreamInfo by remember { mutableStateOf(false) }
+    // set when a glass skin opened it, so the sheet is glass too
+    var streamInfoGlass by remember { mutableStateOf(false) }
 
     var showActionMenu by remember { mutableStateOf(false) }
     // Which surface opened the menu. The lyrics tools only appear when it came from the lyrics
@@ -526,7 +528,15 @@ private fun PlayerSheet(
             },
             onClose = { state.collapseSoft() },
             onQueue = { styleQueueOpen = true },
-            onStreamInfo = { if (!studioEngaged) showStreamInfo = true },
+            onStreamInfo = { if (!studioEngaged) { streamInfoGlass = true; showStreamInfo = true } },
+            onPages = {
+                // up through the pages: the lyrics, then the queue, then back to the cover
+                when {
+                    styleQueueOpen -> styleQueueOpen = false
+                    styleLyricsOpen -> { styleLyricsOpen = false; styleQueueOpen = true }
+                    else -> styleLyricsOpen = true
+                }
+            },
             turn = if (onTv) null else styleTurn,
         )
     }
@@ -1462,7 +1472,7 @@ private fun PlayerSheet(
                             sideModifier = Modifier.studioPiece(studioPieces, com.mochyy.mochymusic.ui.player.studio.StudioPieces.SIDE),
                             chevronModifier = Modifier.studioPiece(studioPieces, com.mochyy.mochymusic.ui.player.studio.StudioPieces.CHEVRON),
                             onSongInfoClick = { if (!studioEngaged) showSongDetails = true },
-                            onStreamInfoClick = { if (!studioEngaged) showStreamInfo = true },
+                            onStreamInfoClick = { if (!studioEngaged) { streamInfoGlass = false; showStreamInfo = true } },
                             // the header's title is this one moving, so it hides as that takes over
                             // (or fades, with no measured spot for the header's to start from)
                             infoAlpha = {
@@ -1711,7 +1721,7 @@ private fun PlayerSheet(
                     onChevronPositioned = { chevronButtonRect = it },
                     likeBurst = likeBurst,
                     onSongInfoClick = { if (!studioEngaged) showSongDetails = true },
-                    onStreamInfoClick = { if (!studioEngaged) showStreamInfo = true },
+                    onStreamInfoClick = { if (!studioEngaged) { streamInfoGlass = false; showStreamInfo = true } },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .widthIn(max = 600.dp)
@@ -1809,7 +1819,7 @@ private fun PlayerSheet(
         }
 
         if (showStreamInfo) {
-            com.mochyy.mochymusic.ui.player.info.StreamInfoSheet(onDismiss = { showStreamInfo = false })
+            com.mochyy.mochymusic.ui.player.info.StreamInfoSheet(onDismiss = { showStreamInfo = false }, glass = streamInfoGlass)
         }
 
         if (showActionMenu) {

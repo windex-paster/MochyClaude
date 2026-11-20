@@ -67,7 +67,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 /** "stream info": where the playing song comes from, and its whole road to the speaker */
 @Composable
-fun StreamInfoSheet(onDismiss: () -> Unit) {
+fun StreamInfoSheet(onDismiss: () -> Unit, glass: Boolean = false) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val service = playerConnection.service
     val metadata by playerConnection.mediaMetadata.collectAsState()
@@ -78,7 +78,7 @@ fun StreamInfoSheet(onDismiss: () -> Unit) {
     val from by remember(song.id) { service.playingFrom.map { it[song.id] }.distinctUntilChanged() }.collectAsState(initial = null)
     val cards = rememberStatCards(service, song.id, song.duration * 1000L)
 
-    CompositionLocalProvider(LocalMenuSheetStack provides stack) {
+    CompositionLocalProvider(LocalMenuSheetStack provides stack, com.mochyy.mochymusic.ui.player.menu.LocalMenuSheetGlass provides glass) {
         MenuSheetSurface(onDismiss = onDismiss, halfDetent = 0.72f, fullDetent = 0.94f) { _ ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,

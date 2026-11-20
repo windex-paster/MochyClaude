@@ -233,9 +233,12 @@ private fun PlayerFont(content: @Composable () -> Unit) {
 private fun SkinBody(context: SkinContext, insets: StyleInsets) {
     val layout = context.layout
     val scroll = if (layout.scroll && !context.preview) rememberScrollState() else null
+    val runUp = rememberTargetRunner(context)
+    val up = layout.swipeUp
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .onSwipeUp(up != null && !context.preview) { up?.let(runUp) }
             .then(if (scroll != null) Modifier.verticalScroll(scroll) else Modifier)
             .padding(
                 start = layout.padding + insets.start,
