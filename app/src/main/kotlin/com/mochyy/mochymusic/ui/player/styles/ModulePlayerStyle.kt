@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -117,7 +118,15 @@ internal class SkinContext(
     val glass: GlassState?,
     /** the stream's words for {codec}, {kbps} and friends, null when no text names them */
     val audio: SkinAudio? = null,
+    /** drawn by the player over the lyrics or the queue, not in the style itself */
+    val overlay: Boolean = false,
 ) {
+    /** the same context for the copy of the panel that shows over the pages: no captured backdrop to blur, and never hidden by a page */
+    fun asOverlay() = SkinContext(
+        skin, layout, tones, track, position, lyricsPosition, duration, carousel, lyrics, preview, cover, accent, values, pulse,
+        actions, openMenu, openCustomise, live, events, landscape, glass = null, audio = audio, overlay = true,
+    )
+
     fun color(color: SkinColor): Color = when (color) {
         is SkinColor.Fixed -> color.color
         SkinColor.Ink -> tones.ink
@@ -185,6 +194,13 @@ internal fun ModulePlayerStyle(actions: StyleActions, modifier: Modifier, previe
         openMenu = { openMenu.value() }, openCustomise = { customiseOpen = true },
         live = live, events = events, landscape = landscape, glass = glass, audio = audio,
     )
+    // the panel that pulls up through the pages is also shown by the player over them
+    val panelHost = actions.panelHost
+    if (panelHost != null && !preview && layout.blocks.any { it.isPagesPanel() }) {
+        val panel: @Composable () -> Unit = remember(track, tones, layout, context.values, duration, landscape) { { SkinPanelOverlay(context) } }
+        androidx.compose.runtime.SideEffect { if (panelHost.panel !== panel) panelHost.panel = panel }
+        androidx.compose.runtime.DisposableEffect(panelHost) { onDispose { panelHost.panel = null } }
+    }
     val background: (@Composable BoxScope.() -> Unit)? =
         if (layout.background == SkinBackground.Tones) null else { { SkinBackdrop(context) } }
     StyleFrame(preview, modifier, tones, background) { landscape, menuOpen, setMenuOpen ->
@@ -639,3 +655,28 @@ private val TopRoom = 64.dp
 private val MenuButton = 36.dp
 // 33⅓ turns a minute
 private const val DegreesPerSecond = 200f
+
+/** whether a block is a panel that pulls up through the pages */
+internal fun SkinBlock.isPagesPanel(): Boolean = when (this) {
+    is SkinBlock.Styled -> inner.isPagesPanel()
+    is SkinBlock.Box -> (up as? SkinTarget.Control)?.kind == ButtonKind.Pages
+    else -> false
+}
+
+/** the panel's own blocks, placed where the skin places them: along the bottom, over the lyrics or the queue */
+@Composable
+internal fun SkinPanelOverlay(context: SkinContext) {
+    val layout = context.layout
+    val blocks = remember(layout) { layout.blocks.filter { it.isPagesPanel() } }
+    if (blocks.isEmpty()) return
+    val overlay = remember(context) { context.asOverlay() }
+    val nav = androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = layout.padding, end = layout.padding, bottom = nav + 24.dp),
+        horizontalAlignment = layout.align.horizontal,
+    ) {
+        ColumnBlocks(blocks, overlay, grow = false)
+    }
+}

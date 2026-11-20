@@ -450,9 +450,22 @@ class StyleActions(
     val onStreamInfo: (() -> Unit)? = null,
     // one step up the pages over the style: lyrics, then the queue, then back to the cover
     val onPages: (() -> Unit)? = null,
+    // a panel pulled up through the pages: how far (0..1) while the finger moves, then whether to go on to the next page
+    val onPageDrag: ((Float) -> Unit)? = null,
+    val onPageRelease: ((Boolean) -> Unit)? = null,
+    // which page is up: 0 the cover, 1 the lyrics, 2 the queue
+    val page: () -> Int = { 0 },
+    // where a skin leaves its panel so the player can show it over the lyrics and the queue
+    val panelHost: SkinPanelHost? = null,
     // the rotate item; none in the selector's cards or on a tv
     val turn: StyleTurn? = null,
 )
+
+/** the panel of a module's player, drawn by the player over its lyrics and queue pages */
+@Stable
+class SkinPanelHost {
+    var panel by androidx.compose.runtime.mutableStateOf<(@androidx.compose.runtime.Composable () -> Unit)?>(null)
+}
 
 // whether the style on now is turned sideways and the switch for it, read as lambdas since the actions are built once
 @Stable

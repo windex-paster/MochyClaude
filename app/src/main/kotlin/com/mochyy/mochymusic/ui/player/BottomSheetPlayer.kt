@@ -22,6 +22,7 @@ import com.mochyy.mochymusic.constants.PlayerHorizontalPadding
 import com.mochyy.mochymusic.extensions.toggleRepeatMode
 import com.mochyy.mochymusic.ui.component.BlurEffectCache
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -474,6 +475,11 @@ private fun PlayerSheet(
     var styleLyricsOpen by remember { mutableStateOf(false) }
     // the queue, opened over the poster from its chevron menu
     var styleQueueOpen by remember { mutableStateOf(false) }
+    // a glass skin's panel pulled up: how far toward the next page (null when nobody is pulling), and whether it shows over the lyrics and the queue
+    var pagePull by remember { mutableStateOf<Float?>(null) }
+    var panelShown by remember { mutableStateOf(false) }
+    val panelHost = remember { com.mochyy.mochymusic.ui.player.styles.SkinPanelHost() }
+    val pageNow: () -> Int = { if (styleQueueOpen) 2 else if (styleLyricsOpen) 1 else 0 }
     // either page fully up: the style under it stops drawing, and its clocks stop with it
     var styleCovered by remember { mutableStateOf(false) }
     var styleQueueCovered by remember { mutableStateOf(false) }
@@ -529,6 +535,19 @@ private fun PlayerSheet(
             onClose = { state.collapseSoft() },
             onQueue = { styleQueueOpen = true },
             onStreamInfo = { if (!studioEngaged) { streamInfoGlass = true; showStreamInfo = true } },
+            onPageDrag = { fraction -> pagePull = fraction.coerceIn(0f, 1f) },
+            onPageRelease = { commit ->
+                val from = pageNow()
+                pagePull = null
+                panelShown = false
+                if (commit) when (from) {
+                    0 -> styleLyricsOpen = true
+                    1 -> styleQueueOpen = true
+                    else -> { styleQueueOpen = false; styleLyricsOpen = false }
+                }
+            },
+            page = pageNow,
+            panelHost = panelHost,
             onPages = {
                 // up through the pages: the lyrics, then the queue, then back to the cover
                 when {
@@ -1098,7 +1117,26 @@ private fun PlayerSheet(
                         styleQueueOpen = false
                     }
                 }
+                // the page a pulled panel is bringing up; scrolling a page up brings the panel up over it
+                val panelScroll = remember {
+                    object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+                        override fun onPreScroll(available: androidx.compose.ui.geometry.Offset, source: androidx.compose.ui.input.nestedscroll.NestedScrollSource): androidx.compose.ui.geometry.Offset {
+                            if (available.y < -3f) panelShown = true else if (available.y > 3f) panelShown = false
+                            return androidx.compose.ui.geometry.Offset.Zero
+                        }
+                    }
+                }
+                val driveLyrics: () -> Float? = {
+                    val p = pagePull
+                    if (p == null) null else when (pageNow()) { 0 -> p; 2 -> 1f - p; else -> null }
+                }
+                val driveQueue: () -> Float? = {
+                    val p = pagePull
+                    if (p == null) null else when (pageNow()) { 1 -> p; 2 -> 1f - p; else -> null }
+                }
                 com.mochyy.mochymusic.ui.player.styles.StyleLyricsPage(
+                    modifier = Modifier.nestedScroll(panelScroll),
+                    drive = driveLyrics,
                     open = styleLyricsOpen && styleOpen,
                     onClose = { styleLyricsOpen = false },
                     screenHeight = screenHeight,
@@ -1106,10 +1144,23 @@ private fun PlayerSheet(
                     onSwitchSource = { showLyricsSource = true },
                 )
                 com.mochyy.mochymusic.ui.player.styles.StyleQueuePage(
+                    modifier = Modifier.nestedScroll(panelScroll),
+                    drive = driveQueue,
                     open = styleQueueOpen && styleOpen,
                     onClose = { styleQueueOpen = false },
                     onCoveredChange = { styleQueueCovered = it },
                 )
+                // the skin's own panel over the lyrics and the queue, up while a page is being scrolled up
+                panelHost.panel?.let { panel ->
+                    Box(Modifier.fillMaxSize()) {
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = (styleLyricsOpen || styleQueueOpen) && panelShown && styleOpen,
+                            modifier = Modifier.align(Alignment.BottomCenter),
+                            enter = androidx.compose.animation.slideInVertically { it / 2 } + androidx.compose.animation.fadeIn(),
+                            exit = androidx.compose.animation.slideOutVertically { it / 2 } + androidx.compose.animation.fadeOut(),
+                        ) { panel() }
+                    }
+                }
                 // the ipod, the full video mode and the bedside each have their own close, a bar over them would just be in the way
                 if (!onTv && playerStyle != PlayerStyle.IPOD && playerStyle != PlayerStyle.VIDEO && !playerStyle.isBedside) PlayerHandle(
                     state = handleState,

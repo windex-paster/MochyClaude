@@ -59,8 +59,9 @@ fun StyleLyricsPage(
     modifier: Modifier = Modifier,
     onCoveredChange: (Boolean) -> Unit = {},
     onSwitchSource: (() -> Unit)? = null,
+    drive: () -> Float? = { null },
 ) {
-    StyleOverlayPage(open = open, onClose = onClose, modifier = modifier, onCoveredChange = onCoveredChange) { nav ->
+    StyleOverlayPage(open = open, onClose = onClose, modifier = modifier, onCoveredChange = onCoveredChange, drive = drive) { nav ->
         LyricsScreen(
             onClose = onClose,
             screenHeight = screenHeight,
@@ -78,8 +79,9 @@ fun StyleQueuePage(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     onCoveredChange: (Boolean) -> Unit = {},
+    drive: () -> Float? = { null },
 ) {
-    StyleOverlayPage(open = open, onClose = onClose, modifier = modifier, onCoveredChange = onCoveredChange) { nav ->
+    StyleOverlayPage(open = open, onClose = onClose, modifier = modifier, onCoveredChange = onCoveredChange, drive = drive) { nav ->
         QueueScreen(
             onClose = onClose,
             contentBottomInset = nav + 28.dp,
@@ -96,11 +98,15 @@ private fun StyleOverlayPage(
     onClose: () -> Unit,
     modifier: Modifier,
     onCoveredChange: (Boolean) -> Unit,
+    drive: () -> Float? = { null },
     content: @Composable (nav: Dp) -> Unit,
 ) {
     val shown = remember { Animatable(0f) }
-    LaunchedEffect(open) {
-        shown.animateTo(if (open) 1f else 0f, spring(dampingRatio = 0.86f, stiffness = if (open) 260f else 420f))
+    // a finger pulling the page up (or down) sets how far it is; let go, it carries on by itself
+    val forced = drive()
+    LaunchedEffect(forced) { if (forced != null) shown.snapTo(forced.coerceIn(0f, 1f)) }
+    LaunchedEffect(open, forced == null) {
+        if (forced == null) shown.animateTo(if (open) 1f else 0f, spring(dampingRatio = 0.86f, stiffness = if (open) 260f else 420f))
     }
     BackHandler(enabled = open, onBack = onClose)
     val currentOnCovered by androidx.compose.runtime.rememberUpdatedState(onCoveredChange)

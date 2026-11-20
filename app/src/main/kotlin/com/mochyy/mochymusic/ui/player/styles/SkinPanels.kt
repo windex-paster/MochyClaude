@@ -21,6 +21,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.launch
+import com.mochyy.mochymusic.modules.skin.ButtonKind
+import com.mochyy.mochymusic.modules.skin.SkinTarget
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,8 +73,45 @@ internal fun SkinBox(block: SkinBlock.Box, context: SkinContext, modifier: Modif
             onClick = { block.tap?.let(run) },
         )
     } else Modifier
-    val swipe = block.up?.let { target -> { run(target) } }
-    Box(sized.then(if (context.preview) Modifier else pressable.onSwipeUp(swipe != null, swipe ?: {}))) {
+    val pages = (block.up as? SkinTarget.Control)?.kind == ButtonKind.Pages && !context.preview && context.actions.onPageDrag != null
+    val swipe = if (pages) null else block.up?.let { target -> { run(target) } }
+    // how far the panel has been pulled up, in px: it rises and fades while the next page rises over it
+    var lift by remember { mutableFloatStateOf(0f) }
+    val density = LocalDensity.current
+    val span = with(density) { PagePullSpan.toPx() }
+    val scope = rememberCoroutineScope()
+    val pulled = if (pages) {
+        Modifier
+            .graphicsLayer {
+                val hidden = !context.overlay && context.actions.page() != 0
+                alpha = if (hidden) 0f else 1f - (lift / span).coerceIn(0f, 1f) * 0.85f
+                translationY = -lift * 0.55f
+            }
+            .pointerInput(Unit) {
+                var total = 0f
+                detectVerticalDragGestures(
+                    onDragStart = { total = 0f },
+                    onDragEnd = {
+                        val commit = total < -span * 0.28f
+                        context.actions.onPageRelease?.invoke(commit)
+                        // back down smoothly: the page it opened is already carrying on by itself
+                        val from = lift
+                        scope.launch { androidx.compose.animation.core.animate(from, 0f) { v, _ -> lift = v } }
+                    },
+                    onDragCancel = {
+                        context.actions.onPageRelease?.invoke(false)
+                        val from = lift
+                        scope.launch { androidx.compose.animation.core.animate(from, 0f) { v, _ -> lift = v } }
+                    },
+                    onVerticalDrag = { _, dy ->
+                        total += dy
+                        lift = (-total).coerceAtLeast(0f)
+                        context.actions.onPageDrag?.invoke(lift / span)
+                    },
+                )
+            }
+    } else Modifier
+    Box(sized.then(if (context.preview) Modifier else pressable.onSwipeUp(swipe != null, swipe ?: {}).then(pulled))) {
         if (glass != null) {
             val radius = with(LocalDensity.current) { (block.glass ?: 0f).dp.toPx() }
             // the blur reads past the box's edges and the clip trims it, so nothing bright smears in from an edge
@@ -118,6 +162,9 @@ internal fun Modifier.onSwipeUp(enabled: Boolean, onUp: () -> Unit): Modifier =
     }
 
 private val UpDistance = 56.dp
+
+// how far up the panel is pulled for the next page to be all the way up
+private val PagePullSpan = 420.dp
 
 private fun gradient(colors: List<Color>, kind: GradientKind): Brush {
     if (colors.size == 1) return Brush.linearGradient(listOf(colors[0], colors[0]))
