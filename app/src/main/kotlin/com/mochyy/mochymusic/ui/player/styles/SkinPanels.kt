@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,11 +59,15 @@ import kotlin.math.min
 internal fun SkinBox(block: SkinBlock.Box, context: SkinContext, modifier: Modifier, inRow: Boolean) {
     val shape = RoundedCornerShape(block.corner)
     val colors = block.fill.map(context::color)
+    val target = block.target
+    val run = if (target != null) rememberTargetRunner(context) else null
+    val interactive = LocalStyleInteractive.current
     val sized = modifier
         .then(block.width?.let { Modifier.width(it) } ?: if (inRow) Modifier else Modifier.fillMaxWidth())
         .then(block.height?.let { Modifier.height(it) } ?: Modifier)
         .then(if (block.shadow) Modifier.shadow(16.dp, shape) else Modifier)
         .clip(shape)
+        .then(if (target != null && run != null) Modifier.clickable { if (!context.preview && interactive()) run(target) } else Modifier)
     val glass = context.glass.takeIf { block.glass != null }
     // a tap or a long press on the panel itself; the controls inside answer their own touches first
     val run = rememberTargetRunner(context)
