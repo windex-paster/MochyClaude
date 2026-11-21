@@ -259,7 +259,7 @@ fun OnlineSearchResult(
     val ytDesc = stringResource(R.string.search_src_youtube_desc)
     val scDesc = stringResource(R.string.search_src_soundcloud_desc)
     val yaDesc = stringResource(R.string.search_src_yandex_desc)
-    val sourceChoices = listOf(SearchSourceChoice("YouTube Music", ytDesc, R.drawable.source_ytmusic)) +
+    val sourceChoices = listOf(SearchSourceChoice("YouTube Music", ytDesc, R.drawable.source_logo_ytmusic, round = true)) +
         viewModel.sources.map { module ->
             SearchSourceChoice(
                 label = module.searchLabel,
@@ -269,10 +269,11 @@ fun OnlineSearchResult(
                     else -> module.info.description.take(40)
                 },
                 icon = when (module.info.id) {
-                    "soundcloud" -> R.drawable.source_soundcloud
-                    "yandex" -> R.drawable.source_yandex
+                    "soundcloud" -> R.drawable.source_logo_soundcloud
+                    "yandex" -> R.drawable.source_logo_yandex
                     else -> R.drawable.globe_search
                 },
+                glyph = module.info.id != "soundcloud" && module.info.id != "yandex",
             )
         }
 

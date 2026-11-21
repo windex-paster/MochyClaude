@@ -9,6 +9,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -46,7 +49,37 @@ import com.mochyy.mochymusic.ui.component.RemoteFocus
 import com.mochyy.mochymusic.ui.component.rememberProgressiveBlur
 
 /** one place to search: its name, a line about it and its picture */
-internal data class SearchSourceChoice(val label: String, val description: String, val icon: Int)
+internal data class SearchSourceChoice(
+    val label: String,
+    val description: String,
+    val icon: Int,
+    /** the logo's own outline: a circle for YouTube Music, a rounded square for the others */
+    val round: Boolean = false,
+    /** the picture is a tinted glyph of the app's own, not a coloured logo */
+    val glyph: Boolean = false,
+)
+
+/** a service's own logo, cut to its outline */
+@Composable
+private fun SourceLogo(choice: SearchSourceChoice, size: androidx.compose.ui.unit.Dp) {
+    if (choice.glyph) {
+        Icon(painter = painterResource(choice.icon), contentDescription = null, tint = Color.White, modifier = Modifier.size(size))
+        return
+    }
+    Box(Modifier.size(size).clip(if (choice.round) CircleShape else RoundedCornerShape(size * 0.24f))) {
+        Image(
+            painter = painterResource(choice.icon),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            // the round logo has a little black round it in its picture: scaled a touch so the red reaches the edge
+            modifier = Modifier.fillMaxSize().graphicsLayer {
+                val k = if (choice.round) 1.07f else 1f
+                scaleX = k
+                scaleY = k
+            },
+        )
+    }
+}
 
 private val MenuShape = RoundedCornerShape(30.dp)
 private val MenuWidth = 252.dp
@@ -63,12 +96,7 @@ internal fun SearchSourceButton(current: SearchSourceChoice, onClick: () -> Unit
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = RemoteFocus, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            painter = painterResource(current.icon),
-            contentDescription = stringResource(R.string.search_where),
-            tint = SearchColors.Primary,
-            modifier = Modifier.size(22.dp),
-        )
+        SourceLogo(current, 28.dp)
     }
 }
 
@@ -136,12 +164,7 @@ internal fun SearchSourceMenu(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(14.dp),
                         ) {
-                            Icon(
-                                painter = painterResource(choice.icon),
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp),
-                            )
+                            SourceLogo(choice, 30.dp)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = choice.label,
