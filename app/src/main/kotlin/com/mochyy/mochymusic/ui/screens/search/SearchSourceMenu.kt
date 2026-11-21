@@ -139,15 +139,17 @@ internal fun SearchSourceMenu(
                 if (blur) {
                     GlassPillBackground(
                         state = glassState,
-                        blurRadius = { 34f },
+                        blurRadius = { 60f },
                         tint = Color.White.copy(alpha = 0.07f),
-                        foundationColor = Color(0xFF0B0B0D).copy(alpha = 0.55f),
+                        foundationColor = Color(0xFF0B0B0D).copy(alpha = 0.9f),
                         shape = MenuShape,
                         modifier = Modifier.matchParentSize(),
                     )
                 } else {
                     Box(Modifier.matchParentSize().background(Color(0xF2141417)))
                 }
+                // a dark veil over the blur so the page behind never shows through the text
+                Box(Modifier.matchParentSize().background(Color(0xFF0B0B0D).copy(alpha = 0.55f)))
                 Column(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
                     Text(
                         text = stringResource(R.string.search_where),

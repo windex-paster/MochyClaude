@@ -147,6 +147,9 @@ fun OnlineSearchResult(
     // 0 is "All", 1 the songs, then the module's kinds (artists, albums, playlists)
     var sourceCat by rememberSaveable { mutableStateOf(0) }
     val activeKinds = sourceId?.let { viewModel.source(it)?.entryKinds }.orEmpty()
+    // how many each chip holds, shown after its name once the results are in
+    val trackCount = sourceId?.let { (viewModel.sourceStates[it] as? SourceSearchState.Done)?.hits?.size }
+    fun withCount(label: String, n: Int?) = if (n != null && n > 0) "$label $n" else label
     LaunchedEffect(sourceId, sourceCat) {
         val id = sourceId ?: return@LaunchedEffect
         if (sourceCat == 0) activeKinds.forEach { viewModel.loadEntries(id, it) }
@@ -345,7 +348,7 @@ fun OnlineSearchResult(
                                 )
                             }
                         }
-                        item(key = "source_h_tracks") { SearchSectionHeader(title = stringResource(R.string.source_cat_tracks), ruleAbove = false) }
+                        item(key = "source_h_tracks") { SourceSectionHeader(stringResource(R.string.source_cat_tracks), tracks.size) { sourceCat = 1 } }
                         sourceResultItems(
                             state = viewModel.sourceStates[activeSource],
                             activeMediaId = mediaMetadata?.id,
@@ -358,7 +361,7 @@ fun OnlineSearchResult(
                             if (st is EntryState.Done && st.entries.isEmpty()) return@forEach
                             if (st is EntryState.Failed) return@forEach
                             item(key = "source_h_${kind.name}") {
-                                SearchSectionHeader(
+                                SourceSectionHeader(
                                     title = stringResource(
                                         when (kind) {
                                             com.mochyy.mochymusic.module.EntryKind.Artist -> R.string.source_cat_artists
@@ -366,10 +369,11 @@ fun OnlineSearchResult(
                                             com.mochyy.mochymusic.module.EntryKind.Playlist -> R.string.source_cat_playlists
                                         },
                                     ),
-                                    ruleAbove = false,
+                                    count = (st as? EntryState.Done)?.entries?.size,
+                                    onMore = { sourceCat = 2 + activeKinds.indexOf(kind) },
                                 )
                             }
-                            entryResultItems(st, "all_${kind.name}", 3, openEntry)
+                            entryCarouselItem(st, "all_${kind.name}", openEntry)
                         }
                     } else {
                         sourceResultItems(
@@ -507,15 +511,15 @@ fun OnlineSearchResult(
                     onCategory = { index -> viewModel.filter.value = SearchCategories[index].second },
                     sourceCategories = if (activeKinds.isEmpty()) emptyList() else listOf(
                         stringResource(R.string.source_cat_all),
-                        stringResource(R.string.source_cat_tracks),
+                        withCount(stringResource(R.string.source_cat_tracks), trackCount),
                     ) + activeKinds.map { kind ->
-                        stringResource(
+                        withCount(stringResource(
                             when (kind) {
                                 com.mochyy.mochymusic.module.EntryKind.Artist -> R.string.source_cat_artists
                                 com.mochyy.mochymusic.module.EntryKind.Album -> R.string.source_cat_albums
                                 com.mochyy.mochymusic.module.EntryKind.Playlist -> R.string.source_cat_playlists
                             },
-                        )
+                        ), sourceId?.let { (viewModel.entryStates[viewModel.entryKey(it, kind)] as? EntryState.Done)?.entries?.size })
                     },
                     sourceCategory = sourceCat,
                     onSourceCategory = { sourceCat = it },
@@ -545,15 +549,15 @@ fun OnlineSearchResult(
                         onCategory = { index -> viewModel.filter.value = SearchCategories[index].second },
                         sourceCategories = if (activeKinds.isEmpty()) emptyList() else listOf(
                             stringResource(R.string.source_cat_all),
-                            stringResource(R.string.source_cat_tracks),
+                            withCount(stringResource(R.string.source_cat_tracks), trackCount),
                         ) + activeKinds.map { kind ->
-                            stringResource(
+                            withCount(stringResource(
                                 when (kind) {
                                     com.mochyy.mochymusic.module.EntryKind.Artist -> R.string.source_cat_artists
                                     com.mochyy.mochymusic.module.EntryKind.Album -> R.string.source_cat_albums
                                     com.mochyy.mochymusic.module.EntryKind.Playlist -> R.string.source_cat_playlists
                                 },
-                            )
+                            ), sourceId?.let { (viewModel.entryStates[viewModel.entryKey(it, kind)] as? EntryState.Done)?.entries?.size })
                         },
                         sourceCategory = sourceCat,
                         onSourceCategory = { sourceCat = it },

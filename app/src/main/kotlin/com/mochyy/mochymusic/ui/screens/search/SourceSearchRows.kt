@@ -15,6 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
@@ -238,3 +243,84 @@ private fun Message(text: String) {
 }
 
 private fun clock(seconds: Long): String = "${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')}"
+
+/** a section's title with how many there are and an arrow, tapping it opens the whole list (the header of a carousel) */
+@Composable
+fun SourceSectionHeader(title: String, count: Int?, onMore: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onMore)
+            .padding(horizontal = SearchHorizontalPadding, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Bold),
+            color = SearchColors.Primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (count != null && count > 0) {
+            Text(text = count.toString(), fontSize = 15.sp, color = SearchColors.Secondary)
+            Spacer(Modifier.width(10.dp))
+        }
+        Icon(
+            painter = androidx.compose.ui.res.painterResource(R.drawable.navigate_next),
+            contentDescription = null,
+            tint = SearchColors.Primary,
+            modifier = Modifier.size(24.dp),
+        )
+    }
+}
+
+/** artists (round pictures), albums or playlists (big covers) in one row you swipe sideways */
+fun LazyListScope.entryCarouselItem(state: EntryState?, keyPrefix: String, onClick: (SourceEntry) -> Unit) {
+    when (state) {
+        null, EntryState.Loading -> item(key = "${keyPrefix}_loading") {
+            Box(modifier = Modifier.fillMaxWidth().height(60.dp), contentAlignment = Alignment.Center) { SearchLoadingDots() }
+        }
+        is EntryState.Failed -> Unit
+        is EntryState.Done -> if (state.entries.isNotEmpty()) item(key = "${keyPrefix}_row") {
+            val shown = state.entries.take(20)
+            LazyRow(
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = SearchHorizontalPadding),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                items(shown.size, key = { "${keyPrefix}_${shown[it].id}" }) { index ->
+                    val entry = shown[index]
+                    val round = entry.kind == EntryKind.Artist
+                    val size = if (round) 136.dp else 168.dp
+                    Column(
+                        modifier = Modifier.width(size).clickable { onClick(entry) },
+                        horizontalAlignment = if (round) Alignment.CenterHorizontally else Alignment.Start,
+                    ) {
+                        SearchArtwork(url = entry.artworkUrl, size = size, circle = round, corner = 12.dp)
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            text = entry.title,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = SearchColors.Primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = if (round) TextAlign.Center else TextAlign.Start,
+                        )
+                        if (!round && entry.subtitle.isNotBlank()) {
+                            Text(
+                                text = entry.subtitle,
+                                fontSize = 13.sp,
+                                color = SearchColors.Secondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(18.dp))
+        }
+    }
+}
