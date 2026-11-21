@@ -7,6 +7,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -435,9 +438,9 @@ private fun Block(block: SkinBlock, context: SkinContext, modifier: Modifier, in
         is SkinBlock.Time -> SkinTime(block, context, modifier)
         is SkinBlock.Shader -> SkinShaderBlock(block, context, modifier)
         is SkinBlock.Cover -> SkinCover(block, context, modifier)
-        is SkinBlock.Title -> SongText(block.text, context, modifier, inRow) { it.title }
-        is SkinBlock.Artist -> SongText(block.text, context, modifier, inRow) { it.artist }
-        is SkinBlock.Album -> SongText(block.text, context, modifier, inRow) { it.album }
+        is SkinBlock.Title -> SongText(block.text, context, modifier, inRow, scrolls = true) { it.title }
+        is SkinBlock.Artist -> SongText(block.text, context, modifier, inRow, scrolls = true, opensArtist = true) { it.artist }
+        is SkinBlock.Album -> SongText(block.text, context, modifier, inRow, scrolls = true) { it.album }
         is SkinBlock.Label -> SkinLabel(block, context, modifier, inRow)
         is SkinBlock.Picture -> SkinPicture(block, context, modifier)
         is SkinBlock.Progress -> SkinProgress(block, context, modifier)
@@ -507,26 +510,48 @@ private fun SkinCover(block: SkinBlock.Cover, context: SkinContext, modifier: Mo
 
 /** the song's title, artist or album, riding the row of songs the way the other styles' words do */
 @Composable
-private fun SongText(text: SkinText, context: SkinContext, modifier: Modifier, inRow: Boolean, pick: (StyleTrack) -> String) {
-    Box(modifier.then(if (inRow || text.wrap) Modifier else Modifier.fillMaxWidth())) {
+private fun SongText(
+    text: SkinText,
+    context: SkinContext,
+    modifier: Modifier,
+    inRow: Boolean,
+    scrolls: Boolean = false,
+    /** a tap on the words opens the artist's page */
+    opensArtist: Boolean = false,
+    pick: (StyleTrack) -> String,
+) {
+    val connection = com.mochyy.mochymusic.LocalPlayerConnection.current
+    val song = if (opensArtist) connection?.mediaMetadata?.collectAsState() else null
+    val artistId = if (opensArtist && !context.preview) song?.value?.artists?.firstOrNull { !it.id.isNullOrBlank() }?.id else null
+    val open = if (artistId != null) {
+        Modifier.clickable(
+            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+            indication = null,
+        ) { context.actions.onOpenRoute("artist/$artistId") }
+    } else Modifier
+    Box(modifier.then(if (inRow || text.wrap) Modifier else Modifier.fillMaxWidth()).then(open)) {
         StyleSongs(context.carousel, context.track, NoLyrics) { song, slotModifier ->
-            TextLine(pick(song.track), text, context, slotModifier.textWidth(text))
+            TextLine(pick(song.track), text, context, slotModifier.textWidth(text), scrolls = scrolls)
         }
     }
 }
 
 @Composable
-internal fun TextLine(value: String, text: SkinText, context: SkinContext, modifier: Modifier) {
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+internal fun TextLine(value: String, text: SkinText, context: SkinContext, modifier: Modifier, scrolls: Boolean = false) {
+    // one line that's too long for its room rolls along instead of being cut off, once the words have been read at rest
+    val roll = scrolls && text.lines == 1 && !context.preview
     Text(
         text = if (text.upper) value.uppercase() else value,
         color = context.color(text.color),
         fontSize = text.size,
         fontWeight = text.weight,
         maxLines = text.lines,
-        overflow = TextOverflow.Ellipsis,
+        softWrap = !roll,
+        overflow = if (roll) TextOverflow.Clip else TextOverflow.Ellipsis,
         textAlign = (text.align ?: context.layout.align).textAlign,
         letterSpacing = if (text.spacing != 0f) text.spacing.em else TextUnit.Unspecified,
-        modifier = modifier,
+        modifier = if (roll) modifier.basicMarquee(iterations = Int.MAX_VALUE, initialDelayMillis = 1800, repeatDelayMillis = 1500, velocity = 32.dp) else modifier,
     )
 }
 

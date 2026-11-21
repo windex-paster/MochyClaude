@@ -3,6 +3,7 @@
 package com.mochyy.mochymusic.ui.player.styles
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
@@ -111,7 +112,34 @@ internal fun SkinBox(block: SkinBlock.Box, context: SkinContext, modifier: Modif
                 )
             }
     } else Modifier
-    Box(sized.then(if (context.preview) Modifier else pressable.onSwipeUp(swipe != null, swipe ?: {}).then(pulled))) {
+    // a swipe to the left on the panel: it slides with the finger, then the sheet opens and it settles back
+    var slide by remember { mutableFloatStateOf(0f) }
+    val leftTarget = block.left
+    val swiped = if (leftTarget != null && !context.preview) {
+        Modifier
+            .graphicsLayer { translationX = slide }
+            .pointerInput(leftTarget) {
+                var total = 0f
+                val settle: () -> Unit = {
+                    val from = slide
+                    scope.launch { androidx.compose.animation.core.animate(from, 0f, animationSpec = androidx.compose.animation.core.spring(dampingRatio = 0.7f, stiffness = 380f)) { v, _ -> slide = v } }
+                }
+                detectHorizontalDragGestures(
+                    onDragStart = { total = 0f },
+                    onDragEnd = {
+                        if (total < -UpDistance.toPx()) run(leftTarget)
+                        settle()
+                    },
+                    onDragCancel = { settle() },
+                    onHorizontalDrag = { _, dx ->
+                        total += dx
+                        // follows the finger only to the left, a bit slower than it, so it reads as being pulled
+                        slide = (total * 0.55f).coerceIn(-90.dp.toPx(), 0f)
+                    },
+                )
+            }
+    } else Modifier
+    Box(sized.then(if (context.preview) Modifier else pressable.onSwipeUp(swipe != null, swipe ?: {}).then(pulled).then(swiped))) {
         if (glass != null) {
             val radius = with(LocalDensity.current) { (block.glass ?: 0f).dp.toPx() }
             // the blur reads past the box's edges and the clip trims it, so nothing bright smears in from an edge

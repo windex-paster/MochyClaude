@@ -225,6 +225,8 @@ fun SearchGlassTopBar(
     titleBlockHeight: Dp = SearchTitleBlockHeight,
 
     below: (@Composable () -> Unit)? = null,
+    /** the row under the field folds away smoothly as the page scrolls, instead of staying put */
+    collapseBelow: Boolean = false,
     field: @Composable () -> Unit,
 ) {
     val statusBar = WindowInsets.stableStatusBars.asPaddingValues().calculateTopPadding()
@@ -378,8 +380,23 @@ fun SearchGlassTopBar(
                 }
               }
               if (below != null) {
-                Spacer(modifier = Modifier.height(16.dp))
-                below()
+                Column(
+                    modifier = if (collapseBelow) {
+                        Modifier
+                            .graphicsLayer {
+                                alpha = (1f - progressProvider().coerceIn(0f, 1f) * 1.4f).coerceIn(0f, 1f)
+                                clip = true
+                            }
+                            .layout { measurable, constraints ->
+                                val placeable = measurable.measure(constraints)
+                                val keep = 1f - progressProvider().coerceIn(0f, 1f)
+                                layout(placeable.width, (placeable.height * keep).toInt()) { placeable.placeRelative(0, 0) }
+                            }
+                    } else Modifier,
+                ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    below()
+                }
               }
             }
         }

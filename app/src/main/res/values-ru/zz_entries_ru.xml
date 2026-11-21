@@ -11,4 +11,8 @@
     <string name="source_kind_album">Альбом</string>
     <string name="source_kind_playlist">Плейлист</string>
     <string name="source_nothing_found">Ничего не найдено</string>
+    <string name="search_where">Где искать</string>
+    <string name="search_src_youtube_desc">Редкие треки и живые записи</string>
+    <string name="search_src_soundcloud_desc">Ремиксы и независимые</string>
+    <string name="search_src_yandex_desc">Основной каталог</string>
 </resources>

@@ -36,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,13 +85,14 @@ fun AboutSongSheet(
     about: SongAbout,
     onDismiss: () -> Unit,
     onOpenArtist: (String) -> Unit,
+    glass: Boolean = false,
 ) {
     val (sourceId, setSourceId) = rememberPreference(AboutSongSourceKey, AboutSource.Musixmatch.id)
     val source = AboutSource.entries.firstOrNull { it.id == sourceId } ?: AboutSource.Musixmatch
     var showSources by remember { mutableStateOf(false) }
     val stack = LocalMenuSheetStack.current ?: rememberMenuSheetStack()
 
-    CompositionLocalProvider(LocalMenuSheetStack provides stack) {
+    CompositionLocalProvider(LocalMenuSheetStack provides stack, com.mochyy.mochymusic.ui.player.menu.LocalMenuSheetGlass provides glass) {
         MenuSheetSurface(onDismiss = onDismiss, halfDetent = 0.72f, fullDetent = 0.94f) { _ ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -371,3 +373,16 @@ private fun StoreRow(links: List<StoreLink>) = BoxWithConstraints(Modifier.fillM
 
 private val ArtistGap = 20.dp
 private val StoreGap = 12.dp
+
+/** "about the track" opened straight from a module's player: the same sheet as in the song details, loaded here, in glass */
+@Composable
+fun TrackAboutSheet(onDismiss: () -> Unit, onOpenArtist: (String) -> Unit, glass: Boolean = true) {
+    val playerConnection = com.mochyy.mochymusic.LocalPlayerConnection.current ?: return
+    val metadata by playerConnection.mediaMetadata.collectAsState()
+    val song = metadata ?: return
+    val database = com.mochyy.mochymusic.LocalDatabase.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val about by remember(song.id) { SongAboutLoader.load(song, database, context.applicationContext) }
+        .collectAsState(initial = SongAbout(artist = song.artists.joinToString(", ") { it.name }))
+    AboutSongSheet(song = song, about = about, onDismiss = onDismiss, onOpenArtist = onOpenArtist, glass = glass)
+}

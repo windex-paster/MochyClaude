@@ -11,4 +11,8 @@
     <string name="source_kind_album">Album</string>
     <string name="source_kind_playlist">Playlist</string>
     <string name="source_nothing_found">Nothing found</string>
+    <string name="search_where">Where to search</string>
+    <string name="search_src_youtube_desc">Rare tracks and live recordings</string>
+    <string name="search_src_soundcloud_desc">Remixes and independents</string>
+    <string name="search_src_yandex_desc">The main catalog</string>
 </resources>

@@ -288,7 +288,7 @@ enum class ProgressStyle { Line, Thick, Pill }
 
 enum class VisualizerStyle { Bars, Mirror, Wave, Dots, Ring }
 
-enum class ButtonKind { PlayPause, Previous, Next, Like, Shuffle, Repeat, Lyrics, Menu, Customise, Close, Editor, Queue, StreamInfo, Pages }
+enum class ButtonKind { PlayPause, Previous, Next, Like, Shuffle, Repeat, Lyrics, Menu, Customise, Close, Editor, Queue, StreamInfo, TrackInfo, Pages }
 
 enum class ShapeKind { Rect, Circle, Pill, Line }
 
@@ -370,6 +370,8 @@ sealed interface SkinBlock {
         val hold: SkinTarget? = null,
         /** what a swipe up that starts on the panel does */
         val up: SkinTarget? = null,
+        /** what a swipe to the left that starts on the panel does */
+        val left: SkinTarget? = null,
     ) : SkinBlock
     /** a shape drawn from svg path data, scaled from its [viewWidth] by [viewHeight] box into its own */
     data class Vector(

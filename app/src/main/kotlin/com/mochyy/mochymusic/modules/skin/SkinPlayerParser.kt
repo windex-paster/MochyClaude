@@ -407,6 +407,7 @@ internal object SkinPlayerParser {
                 tap = tapTarget(o["tap"]),
                 hold = tapTarget(o["hold"]),
                 up = tapTarget(o["up"]),
+                left = tapTarget(o["left"]),
             )
         }
 
@@ -555,6 +556,7 @@ internal object SkinPlayerParser {
         "pages", "nextpage" -> ButtonKind.Pages
         "queue", "continue", "upnext" -> ButtonKind.Queue
         "streaminfo", "stream", "info" -> ButtonKind.StreamInfo
+        "trackinfo", "about", "songinfo", "details" -> ButtonKind.TrackInfo
         "editor", "edit" -> ButtonKind.Editor
         else -> null
     }

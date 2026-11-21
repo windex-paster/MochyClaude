@@ -452,6 +452,8 @@ class StyleActions(
     val onQueue: (() -> Unit)? = null,
     // opens the stream's info sheet (codec, bitrate, decoder), for a module's button or panel
     val onStreamInfo: (() -> Unit)? = null,
+    /** the "about the track" sheet: the song's facts, what it's about and who made it */
+    val onTrackInfo: (() -> Unit)? = null,
     // one step up the pages over the style: lyrics, then the queue, then back to the cover
     val onPages: (() -> Unit)? = null,
     // a panel pulled up through the pages: how far (0..1) while the finger moves, then whether to go on to the next page

@@ -246,6 +246,8 @@ fun OnlineSearchResult(
     // a second row of chips (the kinds of result) sits under the sources while YouTube Music is picked, and the list has to start under both
     val twoChipRows = viewModel.sources.isNotEmpty() && (sourceId == null || activeKinds.isNotEmpty())
     val extraChipRow = if (twoChipRows) 34.dp else 0.dp
+    // in portrait the sources are a list behind the round button, so only the kinds of result are left as chips
+    val portraitChips = sourceId == null || activeKinds.isNotEmpty()
 
     val top = remember(summary, viewModel.query) {
         summary?.let { pickTopResult(it.summaries.flatMap { section -> section.items }, viewModel.query) }
@@ -268,7 +270,7 @@ fun OnlineSearchResult(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    top = if (landscape) statusTop + SearchTopClearance + 34.dp + 18.dp + extraChipRow else searchTopBarHeight(withTitle = true, extra = 46.dp + extraChipRow),
+                    top = if (landscape) statusTop + SearchTopClearance + 34.dp + 18.dp + extraChipRow else searchTopBarHeight(withTitle = false, extra = if (portraitChips) 46.dp else 0.dp),
                     bottom = bottomInset + 24.dp,
                 ),
             ) {
@@ -499,32 +501,59 @@ fun OnlineSearchResult(
             glassState = glassState,
             progressProvider = progressProvider,
             pureBlack = pureBlack,
-            title = stringResource(R.string.search),
-            trailing = {
-                SearchAvatar(imageUrl = profilePicStr.ifBlank { null }, onClick = { navController.navigateToTab("settings") })
-            },
-            below = {
-                SourceAndCategoryRows(
-                    sourceLabels = viewModel.sources.map { it.searchLabel },
-                    sourceIndex = sourceId?.let { id -> viewModel.sources.indexOfFirst { it.info.id == id } }?.takeIf { it >= 0 },
-                    onSource = { index -> sourceCat = 0; sourceId = index?.let { viewModel.sources[it].info.id } },
-                    selectedIndex = selectedIndex,
-                    onCategory = { index -> viewModel.filter.value = SearchCategories[index].second },
-                    sourceCategories = if (activeKinds.isEmpty()) emptyList() else listOf(
-                        stringResource(R.string.source_cat_all),
-                        stringResource(R.string.source_cat_tracks),
-                    ) + activeKinds.map { kind ->
-                        stringResource(
-                            when (kind) {
-                                com.mochyy.mochymusic.module.EntryKind.Artist -> R.string.source_cat_artists
-                                com.mochyy.mochymusic.module.EntryKind.Album -> R.string.source_cat_albums
-                                com.mochyy.mochymusic.module.EntryKind.Playlist -> R.string.source_cat_playlists
+            title = null,
+            collapseBelow = true,
+            trailing = if (viewModel.sources.isEmpty()) null else {
+                {
+                    val ytDesc = stringResource(R.string.search_src_youtube_desc)
+                    val choices = listOf(
+                        SearchSourceChoice("YouTube Music", ytDesc, R.drawable.music_note),
+                    ) + viewModel.sources.map { module ->
+                        SearchSourceChoice(
+                            label = module.searchLabel,
+                            description = when (module.info.id) {
+                                "soundcloud" -> stringResource(R.string.search_src_soundcloud_desc)
+                                "yandex" -> stringResource(R.string.search_src_yandex_desc)
+                                else -> module.info.description.take(40)
+                            },
+                            icon = when (module.info.id) {
+                                "soundcloud" -> R.drawable.module_soundcloud
+                                "yandex" -> R.drawable.module_yandex
+                                else -> R.drawable.globe_search
                             },
                         )
-                    },
-                    sourceCategory = sourceCat,
-                    onSourceCategory = { sourceCat = it },
-                )
+                    }
+                    SearchSourceButton(
+                        choices = choices,
+                        selected = (sourceId?.let { id -> viewModel.sources.indexOfFirst { it.info.id == id } }?.takeIf { it >= 0 } ?: -1) + 1,
+                        onSelect = { index -> sourceCat = 0; sourceId = if (index == 0) null else viewModel.sources[index - 1].info.id },
+                    )
+                }
+            },
+            below = if (!portraitChips) null else {
+                {
+                    SourceAndCategoryRows(
+                        sourceLabels = emptyList(),
+                        sourceIndex = sourceId?.let { id -> viewModel.sources.indexOfFirst { it.info.id == id } }?.takeIf { it >= 0 },
+                        onSource = {},
+                        selectedIndex = selectedIndex,
+                        onCategory = { index -> viewModel.filter.value = SearchCategories[index].second },
+                        sourceCategories = if (activeKinds.isEmpty()) emptyList() else listOf(
+                            stringResource(R.string.source_cat_all),
+                            stringResource(R.string.source_cat_tracks),
+                        ) + activeKinds.map { kind ->
+                            stringResource(
+                                when (kind) {
+                                    com.mochyy.mochymusic.module.EntryKind.Artist -> R.string.source_cat_artists
+                                    com.mochyy.mochymusic.module.EntryKind.Album -> R.string.source_cat_albums
+                                    com.mochyy.mochymusic.module.EntryKind.Playlist -> R.string.source_cat_playlists
+                                },
+                            )
+                        },
+                        sourceCategory = sourceCat,
+                        onSourceCategory = { sourceCat = it },
+                    )
+                }
             },
         ) {
             SearchField(
@@ -574,7 +603,7 @@ private fun SourceAndCategoryRows(
             )
         }
         if (sourceIndex != null && sourceCategories.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
+            if (sourceLabels.isNotEmpty()) Spacer(modifier = Modifier.height(8.dp))
             BubbleChipRow(labels = sourceCategories, selectedIndex = sourceCategory, onSelect = onSourceCategory)
         }
         if (sourceIndex == null) {

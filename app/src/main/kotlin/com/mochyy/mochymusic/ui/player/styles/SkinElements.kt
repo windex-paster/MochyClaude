@@ -161,6 +161,7 @@ private fun runControl(kind: ButtonKind, connection: PlayerConnection, context: 
         ButtonKind.Close -> context.actions.onClose()
         ButtonKind.Queue -> context.actions.onQueue?.invoke()
         ButtonKind.StreamInfo -> context.actions.onStreamInfo?.invoke()
+        ButtonKind.TrackInfo -> context.actions.onTrackInfo?.invoke()
         ButtonKind.Pages -> context.actions.onPages?.invoke()
         // the player's own editor page, or its customise sheet when it has no page
         ButtonKind.Editor -> context.style.player.editor?.let { context.actions.onOpenRoute(modulePageRoute(context.skin.moduleId, it)) } ?: context.openCustomise()
@@ -181,6 +182,7 @@ private fun iconFor(target: SkinTarget, on: Boolean): Int = when ((target as? Sk
     ButtonKind.Close -> R.drawable.expand_more
     ButtonKind.Queue -> R.drawable.queue_music
     ButtonKind.StreamInfo -> R.drawable.info
+    ButtonKind.TrackInfo -> R.drawable.info
     ButtonKind.Pages -> R.drawable.queue_music
     ButtonKind.Editor -> R.drawable.edit
     null -> R.drawable.puzzle

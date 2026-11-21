@@ -324,6 +324,8 @@ private fun PlayerSheet(
     // The title and artist's sheet: the artists, the album, about the song
     var showSongDetails by remember { mutableStateOf(false) }
     var showStreamInfo by remember { mutableStateOf(false) }
+    // "about the track" opened from a module player's panel, in glass
+    var showTrackAbout by remember { mutableStateOf(false) }
     // set when a glass skin opened it, so the sheet is glass too
     var streamInfoGlass by remember { mutableStateOf(false) }
 
@@ -565,6 +567,7 @@ private fun PlayerSheet(
             onClose = { state.collapseSoft() },
             onQueue = { styleQueueOpen = true },
             onStreamInfo = { if (!studioEngaged) { streamInfoGlass = true; showStreamInfo = true } },
+            onTrackInfo = { if (!studioEngaged) showTrackAbout = true },
             onPageDrag = { fraction -> pagePull = fraction.coerceIn(0f, 1f) },
             onPageRelease = { commit ->
                 val from = pageNow()
@@ -603,6 +606,7 @@ private fun PlayerSheet(
         showSleepTimer = false
         showSongDetails = false
         showStreamInfo = false
+        showTrackAbout = false
     }
 
     // A page open when the player closes stays open: next time the player opens, it opens on that
@@ -1918,6 +1922,17 @@ private fun PlayerSheet(
                 onOpenAlbum = { albumId ->
                     showSongDetails = false
                     navController.navigate("album/$albumId")
+                    state.collapseSoft()
+                },
+            )
+        }
+
+        if (showTrackAbout) {
+            com.mochyy.mochymusic.ui.player.info.TrackAboutSheet(
+                onDismiss = { showTrackAbout = false },
+                onOpenArtist = { artistId ->
+                    showTrackAbout = false
+                    navController.navigate("artist/$artistId")
                     state.collapseSoft()
                 },
             )
