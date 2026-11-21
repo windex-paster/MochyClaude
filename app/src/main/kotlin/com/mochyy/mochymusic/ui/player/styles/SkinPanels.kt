@@ -59,15 +59,12 @@ import kotlin.math.min
 internal fun SkinBox(block: SkinBlock.Box, context: SkinContext, modifier: Modifier, inRow: Boolean) {
     val shape = RoundedCornerShape(block.corner)
     val colors = block.fill.map(context::color)
-    val target = block.target
-    val run = if (target != null) rememberTargetRunner(context) else null
     val interactive = LocalStyleInteractive.current
     val sized = modifier
         .then(block.width?.let { Modifier.width(it) } ?: if (inRow) Modifier else Modifier.fillMaxWidth())
         .then(block.height?.let { Modifier.height(it) } ?: Modifier)
         .then(if (block.shadow) Modifier.shadow(16.dp, shape) else Modifier)
         .clip(shape)
-        .then(if (target != null && run != null) Modifier.clickable { if (!context.preview && interactive()) run(target) } else Modifier)
     val glass = context.glass.takeIf { block.glass != null }
     // a tap or a long press on the panel itself; the controls inside answer their own touches first
     val run = rememberTargetRunner(context)
@@ -75,8 +72,8 @@ internal fun SkinBox(block: SkinBlock.Box, context: SkinContext, modifier: Modif
         Modifier.combinedClickable(
             interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
             indication = null,
-            onLongClick = block.hold?.let { target -> { run(target) } },
-            onClick = { block.tap?.let(run) },
+            onLongClick = block.hold?.let { target -> { if (!context.preview && interactive()) run(target) } },
+            onClick = { if (!context.preview && interactive()) block.tap?.let(run) },
         )
     } else Modifier
     val pages = (block.up as? SkinTarget.Control)?.kind == ButtonKind.Pages && !context.preview && context.actions.onPageDrag != null
