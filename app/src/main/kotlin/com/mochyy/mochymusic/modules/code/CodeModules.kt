@@ -3,6 +3,8 @@
 package com.mochyy.mochymusic.modules.code
 
 import android.content.Context
+import com.mochyy.mochymusic.utils.dataStore
+import com.mochyy.mochymusic.utils.get
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.Signature
@@ -42,6 +44,10 @@ internal object CodeModules {
         }
         return null
     }
+
+    /** the "trust any module" switch in the modules settings; off unless the person turned it on */
+    fun trustsAnyModule(context: Context): Boolean =
+        runCatching { context.dataStore.get(com.mochyy.mochymusic.constants.TrustAnyModuleKey, false) }.getOrDefault(false)
 
     /** true when the apk is signed with exactly the keys this copy of mochy is signed with */
     fun signedLikeMochy(context: Context, apk: File): Boolean =
@@ -99,6 +105,7 @@ internal object CodeModules {
     private fun safe(key: String) = key.lowercase().replace(Regex("[^a-z0-9._-]"), "-").ifBlank { "module" }
 
     private fun signedLikeMochy(context: Context, theirs: PackageInfo?): Boolean {
+        if (trustsAnyModule(context)) return theirs != null
         val own = signers(context.packageManager.getPackageInfo(context.packageName, SignatureFlags))
         return own.isNotEmpty() && own == signers(theirs)
     }

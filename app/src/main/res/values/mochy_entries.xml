@@ -15,4 +15,6 @@
     <string name="search_src_youtube_desc">Rare tracks and live recordings</string>
     <string name="search_src_soundcloud_desc">Remixes and independents</string>
     <string name="search_src_yandex_desc">The main catalog</string>
+    <string name="modules_trust_any_title">Trust any module (at your own risk)</string>
+    <string name="modules_trust_any_desc">Skips the signature check, so modules signed with any key can run code inside the app. Turn on only for modules you trust. Applies after restarting the app.</string>
 </resources>

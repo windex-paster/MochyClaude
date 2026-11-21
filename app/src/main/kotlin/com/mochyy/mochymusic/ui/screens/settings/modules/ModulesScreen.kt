@@ -96,6 +96,14 @@ fun ModulesScreen(navController: NavController, viewModel: ModulesViewModel = hi
         }
         ThirdPartyCard { context.openDevUrl(ModuleDocsUrl) }
         Spacer(Modifier.height(14.dp))
+        val (trustAny, setTrustAny) = com.mochyy.mochymusic.utils.rememberPreference(com.mochyy.mochymusic.constants.TrustAnyModuleKey, defaultValue = false)
+        com.mochyy.mochymusic.ui.component.SwitchPreference(
+            title = { Text(stringResource(R.string.modules_trust_any_title)) },
+            description = stringResource(R.string.modules_trust_any_desc),
+            checked = trustAny,
+            onCheckedChange = setTrustAny,
+        )
+        Spacer(Modifier.height(14.dp))
         // mochy's bar is where people share modules, so its browser sits right up top
         ModulesBarBanner { navController.navigate(ModuleBrowserRoute) }
         Spacer(Modifier.height(22.dp))

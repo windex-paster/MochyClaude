@@ -1387,6 +1387,8 @@ val YtVideoBackgroundLyricsSyncKey = booleanPreferencesKey("ytVideoBackgroundLyr
 val ForceYtBackdropBlur1500Key = booleanPreferencesKey("forceYtBackdropBlur1500")
 
 val OfflineModeKey = booleanPreferencesKey("offlineMode")
+/** off by default: lets modules signed with any key run, the person takes the risk */
+val TrustAnyModuleKey = booleanPreferencesKey("trustAnyModule")
 val DisableAiFilterKey = booleanPreferencesKey("disableAiFilter")
 val SetupImportCompletedKey = booleanPreferencesKey("setupImportCompleted")
 val HideLibraryImportBannerKey = booleanPreferencesKey("hideLibraryImportBanner")

@@ -15,4 +15,6 @@
     <string name="search_src_youtube_desc">Редкие треки и живые записи</string>
     <string name="search_src_soundcloud_desc">Ремиксы и независимые</string>
     <string name="search_src_yandex_desc">Основной каталог</string>
+    <string name="modules_trust_any_title">Доверять любым модулям (на свой риск)</string>
+    <string name="modules_trust_any_desc">Отключает проверку подписи: модули с любой подписью смогут запускать код внутри приложения. Включай, только если доверяешь модулю. Действует после перезапуска приложения.</string>
 </resources>
