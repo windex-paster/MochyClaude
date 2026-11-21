@@ -43,7 +43,6 @@ include(":modules:monochrome")
 include(":modules:jiosaavn")
 include(":modules:soundcloud")
 include(":modules:yandex")
-include(":modules:deezer")
 
 
 // local newpipe extractor

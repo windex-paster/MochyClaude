@@ -5327,14 +5327,6 @@ class MusicService :
     ): com.mochyy.mochymusic.playback.custom.CustomStreamResult {
         val module = sourceModules.browsable(moduleId)
             ?: throw com.mochyy.mochymusic.playback.custom.NoProviderException("$moduleId isn't installed")
-        // a Deezer song has no full audio of its own: it plays from the user's other sources by name, and only the 30-second preview is left when none has it
-        if (moduleId == com.mochyy.mochymusic.module.deezer.DeezerModule.Id) {
-            val track = trackQueryOf(mediaId)
-            if (track != null) {
-                val route = sourceModules.routeFromModules(track, skip = setOf(moduleId))
-                if (route is com.mochyy.mochymusic.modules.SourceModules.Route.Module) return moduleStream(mediaId, route.module, route.stream)
-            }
-        }
         return when (val result = withContext(Dispatchers.IO) { module.streamFor(sourceId, sourceModules.picks(moduleId)) }) {
             is com.mochyy.mochymusic.module.ResolveResult.Found -> moduleStream(mediaId, module, result.stream)
             is com.mochyy.mochymusic.module.ResolveResult.NotFound ->

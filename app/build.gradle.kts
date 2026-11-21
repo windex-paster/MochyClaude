@@ -476,7 +476,6 @@ dependencies {
     implementation(project(":modules:jiosaavn"))
     implementation(project(":modules:soundcloud"))
     implementation(project(":modules:yandex"))
-    implementation(project(":modules:deezer"))
     implementation(project(":modules:bridge"))
 
 
