@@ -253,6 +253,29 @@ fun OnlineSearchResult(
         summary?.let { pickTopResult(it.summaries.flatMap { section -> section.items }, viewModel.query) }
     }
 
+    // where to search: YouTube Music, then each source with a search of its own, in a list behind the round button
+    var sourceMenu by rememberSaveable { mutableStateOf(false) }
+    val sourceIndexNow = sourceId?.let { id -> viewModel.sources.indexOfFirst { it.info.id == id } }?.takeIf { it >= 0 } ?: -1
+    val ytDesc = stringResource(R.string.search_src_youtube_desc)
+    val scDesc = stringResource(R.string.search_src_soundcloud_desc)
+    val yaDesc = stringResource(R.string.search_src_yandex_desc)
+    val sourceChoices = listOf(SearchSourceChoice("YouTube Music", ytDesc, R.drawable.source_ytmusic)) +
+        viewModel.sources.map { module ->
+            SearchSourceChoice(
+                label = module.searchLabel,
+                description = when (module.info.id) {
+                    "soundcloud" -> scDesc
+                    "yandex" -> yaDesc
+                    else -> module.info.description.take(40)
+                },
+                icon = when (module.info.id) {
+                    "soundcloud" -> R.drawable.source_soundcloud
+                    "yandex" -> R.drawable.source_yandex
+                    else -> R.drawable.globe_search
+                },
+            )
+        }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -503,30 +526,11 @@ fun OnlineSearchResult(
             pureBlack = pureBlack,
             title = null,
             collapseBelow = true,
-            trailing = if (viewModel.sources.isEmpty()) null else {
+            trailing = if (sourceChoices.size < 2) null else {
                 {
-                    val ytDesc = stringResource(R.string.search_src_youtube_desc)
-                    val choices = listOf(
-                        SearchSourceChoice("YouTube Music", ytDesc, R.drawable.music_note),
-                    ) + viewModel.sources.map { module ->
-                        SearchSourceChoice(
-                            label = module.searchLabel,
-                            description = when (module.info.id) {
-                                "soundcloud" -> stringResource(R.string.search_src_soundcloud_desc)
-                                "yandex" -> stringResource(R.string.search_src_yandex_desc)
-                                else -> module.info.description.take(40)
-                            },
-                            icon = when (module.info.id) {
-                                "soundcloud" -> R.drawable.module_soundcloud
-                                "yandex" -> R.drawable.module_yandex
-                                else -> R.drawable.globe_search
-                            },
-                        )
-                    }
                     SearchSourceButton(
-                        choices = choices,
-                        selected = (sourceId?.let { id -> viewModel.sources.indexOfFirst { it.info.id == id } }?.takeIf { it >= 0 } ?: -1) + 1,
-                        onSelect = { index -> sourceCat = 0; sourceId = if (index == 0) null else viewModel.sources[index - 1].info.id },
+                        current = sourceChoices[sourceIndexNow + 1],
+                        onClick = { sourceMenu = true },
                     )
                 }
             },
@@ -574,6 +578,21 @@ fun OnlineSearchResult(
                             ) { navController.navigateUp() },
                     )
                 },
+            )
+        }
+        if (!landscape && sourceChoices.size > 1) {
+            SearchSourceMenu(
+                open = sourceMenu,
+                choices = sourceChoices,
+                selected = sourceIndexNow + 1,
+                glassState = glassState,
+                onSelect = { index ->
+                    sourceMenu = false
+                    sourceCat = 0
+                    sourceId = if (index == 0) null else viewModel.sources[index - 1].info.id
+                },
+                onDismiss = { sourceMenu = false },
+                topInset = statusTop + SearchTopClearance + SearchFieldHeight + 8.dp,
             )
         }
     }

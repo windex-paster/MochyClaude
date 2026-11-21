@@ -116,8 +116,8 @@ internal fun SkinBox(block: SkinBlock.Box, context: SkinContext, modifier: Modif
     var slide by remember { mutableFloatStateOf(0f) }
     val leftTarget = block.left
     val swiped = if (leftTarget != null && !context.preview) {
+        // the touch is read before the panel is moved, so the finger's own distance is what counts, not the distance left once the panel has slid
         Modifier
-            .graphicsLayer { translationX = slide }
             .pointerInput(leftTarget) {
                 var total = 0f
                 val settle: () -> Unit = {
@@ -127,7 +127,7 @@ internal fun SkinBox(block: SkinBlock.Box, context: SkinContext, modifier: Modif
                 detectHorizontalDragGestures(
                     onDragStart = { total = 0f },
                     onDragEnd = {
-                        if (total < -UpDistance.toPx()) run(leftTarget)
+                        if (total < -LeftDistance.toPx()) run(leftTarget)
                         settle()
                     },
                     onDragCancel = { settle() },
@@ -138,6 +138,7 @@ internal fun SkinBox(block: SkinBlock.Box, context: SkinContext, modifier: Modif
                     },
                 )
             }
+            .graphicsLayer { translationX = slide }
     } else Modifier
     Box(sized.then(if (context.preview) Modifier else pressable.onSwipeUp(swipe != null, swipe ?: {}).then(pulled).then(swiped))) {
         if (glass != null) {
@@ -192,6 +193,9 @@ internal fun Modifier.onSwipeUp(enabled: Boolean, onUp: () -> Unit): Modifier =
     }
 
 private val UpDistance = 56.dp
+
+// a swipe to the left counts from here
+private val LeftDistance = 40.dp
 
 // how far up the panel is pulled for the next page to be all the way up
 private val PagePullSpan = 420.dp
