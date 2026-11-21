@@ -125,6 +125,8 @@ internal fun SkinBox(block: SkinBlock.Box, context: SkinContext, modifier: Modif
             )
             if (colors.size > 1) Box(Modifier.matchParentSize().background(gradient(colors, block.gradient)))
         } else if (colors.isNotEmpty() || block.glass != null) {
+            // over the lyrics or the queue the panel has no glass behind it, so it gets a dark base: the rows under it no longer show through
+            if (context.overlay) Box(Modifier.matchParentSize().background(OverlayBase))
             // where there's no glass to be had (the small preview, a tones background) a frosted box still reads as a panel
             val fill = colors.ifEmpty { listOf(GlassStandIn) }
             Box(Modifier.matchParentSize().background(gradient(fill, block.gradient)))
@@ -207,3 +209,6 @@ internal fun SkinVector(block: SkinBlock.Vector, context: SkinContext, modifier:
 }
 
 private val GlassStandIn = Color.White.copy(alpha = 0.10f)
+
+/** the dark base under a panel shown over the lyrics or the queue: nearly solid, so the page behind it stays out of sight */
+private val OverlayBase = Color(0xF2101014)
