@@ -107,12 +107,18 @@ data class ModuleEntry(
     val checkedAt: Long? = null,
     /** the name of a look above this one that takes some of what it brings, null when nothing of it is covered */
     val coveredBy: String? = null,
+    /** the name and icon the person gave it in the app, over the ones its zip came with */
+    val customName: String? = null,
+    val customIcon: String? = null,
     /** the settings drawn as sliders, with their ends */
     val ranges: Map<String, FieldRange> = emptyMap(),
 ) {
     val id: String get() = module.info.id
 
-    val icon: String? get() = (module as? ModuleArt)?.icon
+    /** the name shown everywhere: the person's own when they gave one */
+    val name: String get() = customName ?: module.info.name
+
+    val icon: String? get() = customIcon ?: (module as? ModuleArt)?.icon
 
     val banner: String? get() = (module as? ModuleArt)?.banner
 
@@ -173,6 +179,19 @@ class ModuleRegistry @Inject constructor(
         // a look turned on goes to the top of the looks, so what it brings shows over the others straight away, its first player included
         if (on && module != null && (module as? SkinSource)?.skin?.players?.isNotEmpty() == true) ActiveSkin.pick("$id/")
         if (on && module != null && restyles(module)) raise(id) else refresh()
+    }
+
+    /** the name the person wants a module to show, blank goes back to the one it came with */
+    fun setCustomName(id: String, name: String?) {
+        prefs.edit { if (name.isNullOrBlank()) remove("name_$id") else putString("name_$id", name.trim()) }
+        refresh()
+    }
+
+    /** a picture the person chose for a module, a file in the app's own folder; null goes back to the module's icon */
+    fun setCustomIcon(id: String, path: String?) {
+        prefs.getString("icon_$id", null)?.takeIf { it != path }?.let { runCatching { java.io.File(it).delete() } }
+        prefs.edit { if (path == null) remove("icon_$id") else putString("icon_$id", path) }
+        refresh()
     }
 
     /** puts a look above the others, so its settings, player, font and glass win where they meet */
@@ -245,6 +264,8 @@ class ModuleRegistry @Inject constructor(
                 update = updates.update(id),
                 checkedAt = updates.checkedAt(id),
                 ranges = (module as? FieldRanges)?.ranges.orEmpty(),
+                customName = prefs.getString("name_$id", null)?.takeIf { it.isNotBlank() },
+                customIcon = prefs.getString("icon_$id", null)?.takeIf { java.io.File(it).exists() },
             )
         }.sortedBy { entry -> order.indexOf(entry.id).let { if (it < 0) Int.MAX_VALUE else it } }
         // the looks that are on, highest first: where two bring the same setting, player, font or glass, the higher one wins

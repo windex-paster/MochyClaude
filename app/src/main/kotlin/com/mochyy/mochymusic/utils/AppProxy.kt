@@ -12,6 +12,8 @@ import com.mochyy.mochymusic.constants.ProxyUsernameKey
 import com.mochyy.mochymusic.extensions.toEnum
 import com.music.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import okhttp3.ConnectionPool
 import okhttp3.Credentials
@@ -159,6 +161,45 @@ object AppProxy {
             }
             TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)
         }
+    }
+
+    /** what one service answered through the proxy: a code means the tunnel works, no code means it never got through */
+    data class SiteCheck(val name: String, val millis: Long?, val code: Int?, val problem: String?)
+
+    // the places the app talks to: any answer at all (even a 404) proves the proxy lets the connection through
+    private val sites = listOf(
+        "YouTube Music" to "https://music.youtube.com/",
+        "YouTube audio" to "https://redirector.googlevideo.com/",
+        "SoundCloud" to "https://api-v2.soundcloud.com/",
+        "Apple Music" to "https://amp-api.music.apple.com/",
+    )
+
+    /** asks each service in [sites] through the proxy at once, so it shows which ones get through and which don't */
+    suspend fun checkSites(config: ProxyConfig): List<SiteCheck> = withContext(Dispatchers.IO) {
+        useSocksLogin(config)
+        val client = OkHttpClient.Builder()
+            .proxy(Proxy(config.type, config.address))
+            .proxyAuthenticator { _, response ->
+                if (config.type != Proxy.Type.HTTP || !config.hasLogin || response.request.header(ProxyAuthHeader) != null) {
+                    null
+                } else {
+                    response.request.newBuilder().header(ProxyAuthHeader, Credentials.basic(config.username, config.password)).build()
+                }
+            }
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .build()
+        sites.map { (name, url) ->
+            async {
+                val started = System.nanoTime()
+                runCatching {
+                    client.newCall(Request.Builder().url(url).build()).execute().use { it.code }
+                }.fold(
+                    onSuccess = { SiteCheck(name, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started), it, null) },
+                    onFailure = { SiteCheck(name, null, null, it.javaClass.simpleName.removeSuffix("Exception").ifBlank { "error" }) },
+                )
+            }
+        }.awaitAll()
     }
 
     // socks has no header for a login, java asks this one global authenticator instead

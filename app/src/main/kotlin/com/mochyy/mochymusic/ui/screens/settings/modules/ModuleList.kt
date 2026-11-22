@@ -229,13 +229,13 @@ private fun ModuleCard(entry: ModuleEntry, lifted: Boolean, updating: Boolean, o
             .then(hold)
             .padding(start = 18.dp, end = 16.dp, top = 14.dp, bottom = 12.dp),
     ) {
-        ModuleLogo(entry.id, info.name, size = 56, art = entry.icon, corner = 0.24f)
+        ModuleLogo(entry.id, entry.name, size = 56, art = entry.icon, corner = 0.24f)
         Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        info.name, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 21.sp,
+                        entry.name, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 21.sp,
                         letterSpacing = (-0.6).sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {

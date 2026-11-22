@@ -107,10 +107,16 @@ fun ProxySettingsScreen(navController: NavController) {
     }
     var dialog by remember { mutableStateOf<ProxyDialog?>(null) }
     var check by remember { mutableStateOf<ProxyCheck>(ProxyCheck.Idle) }
+    // null before a check, an empty list while it runs
+    var sites by remember { mutableStateOf<List<AppProxy.SiteCheck>?>(null) }
+    var sitesRunning by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     // a changed setting makes the last check's answer stale
-    LaunchedEffect(config) { check = ProxyCheck.Idle }
+    LaunchedEffect(config) {
+        check = ProxyCheck.Idle
+        sites = null
+    }
 
     // the small pill at the top that shows the answer of a check; the number makes each one distinct
     var pill by remember { mutableStateOf<Triple<Int, Boolean, String>?>(null) }
@@ -215,6 +221,31 @@ fun ProxySettingsScreen(navController: NavController) {
                                     onSuccess = { ProxyCheck.Passed(it) },
                                     onFailure = { ProxyCheck.Failed(it.checkReason()) },
                                 )
+                            }
+                        }
+                    },
+                ),
+                SettingsItem(
+                    title = { Text(stringResource(if (sitesRunning) R.string.proxy_sites_checking else R.string.proxy_sites_check)) },
+                    descriptionText = sites?.joinToString("\n") { site ->
+                        when {
+                            site.code == null -> stringResource(R.string.proxy_site_failed, site.name, site.problem.orEmpty())
+                            site.code == 403 || site.code == 429 -> stringResource(R.string.proxy_site_blocked, site.name, site.code)
+                            else -> stringResource(R.string.proxy_site_ok, site.name, site.millis?.toInt() ?: 0)
+                        }
+                    } ?: stringResource(R.string.proxy_sites_desc),
+                    icon = painterResource(R.drawable.network_update),
+                    iconShape = CircleShape,
+                    enabled = !sitesRunning,
+                    onClick = {
+                        val target = config
+                        if (target == null) {
+                            pill = Triple(++pillCount, false, needAddress)
+                        } else {
+                            sitesRunning = true
+                            scope.launch {
+                                sites = AppProxy.checkSites(target)
+                                sitesRunning = false
                             }
                         }
                     },

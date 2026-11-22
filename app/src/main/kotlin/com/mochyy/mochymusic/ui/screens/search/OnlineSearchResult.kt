@@ -265,7 +265,7 @@ fun OnlineSearchResult(
     val sourceChoices = listOf(SearchSourceChoice("YouTube Music", ytDesc, R.drawable.source_logo_ytmusic, round = true)) +
         viewModel.sources.map { module ->
             SearchSourceChoice(
-                label = module.searchLabel,
+                label = viewModel.nameOf(module.info.id) ?: module.searchLabel,
                 description = when (module.info.id) {
                     "soundcloud" -> scDesc
                     "yandex" -> yaDesc

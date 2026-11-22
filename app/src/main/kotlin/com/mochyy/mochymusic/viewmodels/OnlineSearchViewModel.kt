@@ -52,6 +52,9 @@ constructor(
 
     fun source(id: String): BrowsableSourceModule? = sourceModules.browsable(id)
 
+    /** the name the person gave a module in the app, null when it has none */
+    fun nameOf(id: String): String? = sourceModules.entries.value.firstOrNull { it.id == id }?.customName
+
     /** the icon a module's zip brought (a file or a link), null when it has none */
     fun artOf(id: String): String? = sourceModules.entries.value.firstOrNull { it.id == id }?.icon
 

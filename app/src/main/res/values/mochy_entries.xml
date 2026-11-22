@@ -17,4 +17,10 @@
     <string name="search_src_yandex_desc">The main catalog</string>
     <string name="modules_trust_any_title">Trust any module (at your own risk)</string>
     <string name="modules_trust_any_desc">Skips the signature check, so modules signed with any key can run code inside the app. Turn on only for modules you trust. Applies after restarting the app.</string>
+    <string name="proxy_sites_check">Check each service</string>
+    <string name="proxy_sites_checking">Checking the services…</string>
+    <string name="proxy_sites_desc">Asks YouTube Music, YouTube audio, SoundCloud and Apple Music through the proxy, so you see which ones get through</string>
+    <string name="proxy_site_ok">✓ %1$s · %2$d ms</string>
+    <string name="proxy_site_blocked">✗ %1$s · answered %2$d, the service refuses this proxy address</string>
+    <string name="proxy_site_failed">✗ %1$s · no answer (%2$s)</string>
 </resources>

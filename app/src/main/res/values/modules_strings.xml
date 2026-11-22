@@ -251,4 +251,8 @@
     <string name="skin_bar_up_next">Up next</string>
     <string name="skin_bar_nothing_next">Nothing queued yet</string>
     <string name="skin_bar_no_lyrics">No lyrics for this song</string>
+    <string name="module_appearance">Name and icon in this app</string>
+    <string name="module_appearance_icon">Choose icon</string>
+    <string name="module_appearance_icon_reset">Reset icon</string>
+    <string name="module_appearance_note">Only changes how this app shows the module, the module itself stays as it is. Leave the name empty to use its own.</string>
 </resources>

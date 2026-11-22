@@ -126,6 +126,22 @@ class ModulesViewModel @Inject constructor(
 
     fun setEnabled(id: String, on: Boolean) = modules.setEnabled(id, on)
 
+    fun setName(id: String, name: String?) = registry.setCustomName(id, name)
+
+    /** copies the picture the person picked into the app's own folder, so it stays when the original goes */
+    fun setIcon(context: android.content.Context, id: String, source: android.net.Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val dir = java.io.File(context.filesDir, "module_icons").apply { mkdirs() }
+            val file = java.io.File(dir, "${id.replace(Regex("[^A-Za-z0-9._-]"), "_")}-${System.currentTimeMillis()}.img")
+            val copied = runCatching {
+                context.contentResolver.openInputStream(source)?.use { input -> file.outputStream().use { input.copyTo(it) } } != null
+            }.getOrDefault(false)
+            if (copied) registry.setCustomIcon(id, file.absolutePath) else file.delete()
+        }
+    }
+
+    fun resetIcon(id: String) = registry.setCustomIcon(id, null)
+
     /** puts a look above the others that are on, so what it brings wins where they meet */
     fun raise(id: String) {
         registry.raise(id)

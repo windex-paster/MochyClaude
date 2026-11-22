@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -66,7 +67,7 @@ internal fun PageCard(modifier: Modifier = Modifier, padding: Int = 16, content:
 /** the one switch: on, everything the module adds shows up; off, it's all gone again */
 @Composable
 internal fun EnableCard(entry: ModuleEntry, onChange: (Boolean) -> Unit) {
-    val name = entry.module.info.name
+    val name = entry.name
     val needsAccount = entry.module.signIn != null
     val signedIn = entry.account is AccountState.SignedIn
     val on = entry.enabled && signedIn
@@ -311,3 +312,51 @@ internal fun UpdateCard(entry: ModuleEntry, updating: Boolean, checking: Boolean
         }
     }
 }
+
+/** the name and the picture of the module as this app shows them, changed here without touching the module itself */
+@Composable
+internal fun AppearanceCard(entry: ModuleEntry, onName: (String?) -> Unit, onPickIcon: () -> Unit, onResetIcon: () -> Unit) {
+    var text by androidx.compose.runtime.remember(entry.id, entry.customName) { androidx.compose.runtime.mutableStateOf(entry.customName.orEmpty()) }
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    Spacer(Modifier.height(10.dp))
+    PageCard(padding = 18) {
+        Text(stringResource(R.string.module_appearance), fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 11.sp, color = PageSoftText)
+        Spacer(Modifier.height(10.dp))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color.White.copy(alpha = 0.06f))
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            if (text.isEmpty()) {
+                Text(entry.module.info.name, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color.White.copy(alpha = 0.4f))
+            }
+            androidx.compose.foundation.text.BasicTextField(
+                value = text,
+                onValueChange = { text = it },
+                singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color.White),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(Color.White),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = {
+                    onName(text)
+                    focus.clearFocus()
+                }),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusLost { if (text.trim() != entry.customName.orEmpty()) onName(text) },
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            PillButton(text = stringResource(R.string.module_appearance_icon), filled = true, onClick = onPickIcon)
+            if (entry.customIcon != null) PillButton(text = stringResource(R.string.module_appearance_icon_reset), onClick = onResetIcon)
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(stringResource(R.string.module_appearance_note), fontFamily = InterFontFamily, fontSize = 12.sp, lineHeight = 17.sp, color = PageSoftText)
+    }
+}
+
+private fun Modifier.onFocusLost(onLost: () -> Unit): Modifier =
+    this.onFocusChanged { if (!it.isFocused) onLost() }

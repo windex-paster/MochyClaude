@@ -108,6 +108,15 @@ fun ModuleScreen(navController: NavController, id: String, viewModel: ModulesVie
                 EnableCard(entry) { viewModel.setEnabled(id, it) }
                 Spacer(Modifier.height(10.dp))
                 InfoCard(entry, onRaise = { viewModel.raise(id) })
+                val iconPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+                    androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+                ) { uri -> if (uri != null) viewModel.setIcon(context, id, uri) }
+                AppearanceCard(
+                    entry = entry,
+                    onName = { viewModel.setName(id, it) },
+                    onPickIcon = { iconPicker.launch("image/*") },
+                    onResetIcon = { viewModel.resetIcon(id) },
+                )
                 UpdateCard(
                     entry = entry,
                     updating = viewModel.updating.collectAsState().value == id,
@@ -189,11 +198,11 @@ internal fun ModuleBanner(banner: String?, icon: String?) {
 private fun ModuleHeader(entry: ModuleEntry) {
     val info = entry.module.info
     Column(Modifier.pullUp(78.dp)) {
-        ModuleLogo(entry.id, info.name, size = 92, art = entry.icon, corner = 0.22f)
+        ModuleLogo(entry.id, entry.name, size = 92, art = entry.icon, corner = 0.22f)
         Spacer(Modifier.height(18.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                info.name, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 32.sp,
+                entry.name, fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = 32.sp,
                 letterSpacing = (-1).sp, lineHeight = 36.sp, color = Color.White, modifier = Modifier.weight(1f, fill = false),
             )
             Spacer(Modifier.width(12.dp))
@@ -252,7 +261,7 @@ private fun RemoveButton(onClick: () -> Unit) {
 
 /** brings in a module's newer copy and says how it went */
 internal suspend fun android.content.Context.updateModule(viewModel: ModulesViewModel, entry: ModuleEntry) {
-    val name = entry.module.info.name
+    val name = entry.name
     val result = viewModel.update(entry.id)
     val problem = linkProblem(this, result)
     val message = if (problem == null) getString(R.string.module_updated, name) else getString(R.string.module_update_failed, name, problem)
