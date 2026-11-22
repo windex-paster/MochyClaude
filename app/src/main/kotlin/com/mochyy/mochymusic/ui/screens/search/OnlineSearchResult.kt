@@ -276,7 +276,9 @@ fun OnlineSearchResult(
                     "yandex" -> R.drawable.source_logo_yandex
                     else -> R.drawable.globe_search
                 },
-                glyph = module.info.id != "soundcloud" && module.info.id != "yandex",
+                glyph = false,
+                moduleId = module.info.id.takeIf { it != "soundcloud" && it != "yandex" },
+                art = viewModel.artOf(module.info.id),
             )
         }
 

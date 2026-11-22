@@ -57,11 +57,24 @@ internal data class SearchSourceChoice(
     val round: Boolean = false,
     /** the picture is a tinted glyph of the app's own, not a coloured logo */
     val glyph: Boolean = false,
+    /** a module's own picture (the icon its zip brought, or its first letter), drawn instead of [icon] */
+    val moduleId: String? = null,
+    val art: String? = null,
 )
 
 /** a service's own logo, cut to its outline */
 @Composable
 private fun SourceLogo(choice: SearchSourceChoice, size: androidx.compose.ui.unit.Dp) {
+    if (choice.moduleId != null) {
+        com.mochyy.mochymusic.ui.screens.settings.modules.ModuleLogo(
+            id = choice.moduleId,
+            name = choice.label,
+            size = size.value.toInt(),
+            art = choice.art,
+            corner = 0.24f,
+        )
+        return
+    }
     if (choice.glyph) {
         Icon(painter = painterResource(choice.icon), contentDescription = null, tint = Color.White, modifier = Modifier.size(size))
         return

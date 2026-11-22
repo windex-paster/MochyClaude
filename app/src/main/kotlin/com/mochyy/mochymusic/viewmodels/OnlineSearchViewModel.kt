@@ -52,6 +52,9 @@ constructor(
 
     fun source(id: String): BrowsableSourceModule? = sourceModules.browsable(id)
 
+    /** the icon a module's zip brought (a file or a link), null when it has none */
+    fun artOf(id: String): String? = sourceModules.entries.value.firstOrNull { it.id == id }?.icon
+
     // artists, albums and playlists per source and kind, asked for when their chip or the "All" view needs them
     val entryStates = mutableStateMapOf<String, com.mochyy.mochymusic.ui.screens.search.EntryState>()
 
