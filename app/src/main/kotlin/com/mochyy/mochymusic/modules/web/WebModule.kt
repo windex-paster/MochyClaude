@@ -5,6 +5,9 @@ package com.mochyy.mochymusic.modules.web
 import android.content.res.Resources
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.module.AccountState
+import com.mochyy.mochymusic.module.BrowsableSourceModule
+import com.mochyy.mochymusic.module.ModuleUnavailable
+import com.mochyy.mochymusic.module.SearchHit
 import com.mochyy.mochymusic.module.CatalogTrack
 import com.mochyy.mochymusic.module.DiagnosticStep
 import com.mochyy.mochymusic.module.HttpRequest
@@ -52,7 +55,7 @@ internal class WebModule(
     private val resources: Resources,
     // the pictures and fonts a zip brought, when it came as one
     files: File? = null,
-) : SourceModule, LyricsModule, LookModule, MetadataModule, ModuleArt, ModuleFields, SkinSource, FieldRanges {
+) : SourceModule, BrowsableSourceModule, LyricsModule, LookModule, MetadataModule, ModuleArt, ModuleFields, SkinSource, FieldRanges {
 
     private val siteName = runCatching { URI(base).host }.getOrNull().orEmpty()
 
@@ -126,6 +129,10 @@ internal class WebModule(
 
     // the songs that are an atmos mix, tidal lists those as songs of their own
     private val atmosRows = ConcurrentHashMap.newKeySet<String>()
+
+    // the service's own id of each song the catalog search last showed, so a tap on one needn't search again
+    private val catalogHits = ConcurrentHashMap<String, CatalogTrack>()
+    private val catalogArt = ConcurrentHashMap<String, String>()
 
     override fun attach(host: ModuleHost) {
         this.host = host
@@ -351,6 +358,46 @@ internal class WebModule(
         val modes = (this["audioModes"] as? JsonArray)?.joinToString(" ") { (it as? JsonPrimitive)?.contentOrNull.orEmpty() }
         val text = listOfNotNull(string("audioMode"), modes, string("audioQuality"), string("quality"), string("streamQuality"), string("codec"), string("format"))
         return AtmosWords.containsMatchIn(text.joinToString(" "))
+    }
+
+    // ---- the search page: any server that plays songs becomes a source of its own there -------
+
+    override val searchLabel: String get() = info.name
+
+    override suspend fun search(query: String, limit: Int): List<SearchHit> {
+        if (ModuleFeature.AudioSource !in adds) return emptyList()
+        val q = query.trim()
+        if (q.isEmpty()) return emptyList()
+        val response = runCatching {
+            host.http(HttpRequest("$base/search?q=${enc(q)}&limit=$limit&${paramsFor(OptionLossless, false)}", headers = headers))
+        }.getOrElse {
+            markUnreachable("$siteName didn't answer")
+            throw ModuleUnavailable("$siteName didn't answer")
+        }
+        if (!response.ok) throw ModuleUnavailable("$siteName answered ${response.code}")
+        host.storage.set("unreachable", null)
+        return tracksIn(response.text, "${OptionLossless}|false").map { track ->
+            catalogHits[track.id] = track
+            SearchHit(
+                id = track.id,
+                title = track.title,
+                artist = track.artist,
+                durationMs = track.durationMs,
+                artworkUrl = catalogArt[track.id],
+            )
+        }
+    }
+
+    override suspend fun streamFor(id: String, picks: Map<String, String>): ResolveResult {
+        if (ModuleFeature.AudioSource !in adds) return ResolveResult.Unavailable("${info.name} doesn't play songs")
+        val found = catalogHits[id] ?: CatalogTrack(id = id, title = id, artist = "")
+        val tier = picks[ChoiceQuality]?.takeIf { it in TidalNames } ?: OptionLossless
+        val atmos = picks[ChoiceMix] == OptionAtmos && DeviceDecoders.canPlay(AtmosCodec)
+        val stream = streamFor(found, tier, atmos) ?: streamFor(found, OptionLossless, false)
+            ?: return ResolveResult.Unavailable("$siteName gave no stream Mochy can play")
+        return ResolveResult.Found(
+            stream.copy(matched = MatchedTrack(found.id, found.title, found.artist, found.album, found.durationMs, 1f)),
+        )
     }
 
     // ---- lyrics ---------------------------------------------------------------------------------

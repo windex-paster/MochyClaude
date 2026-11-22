@@ -208,6 +208,9 @@ class SourceModules @Inject constructor(
     /** the sources the search page can open as a chip of their own, in the order they were installed; they need not be in the provider order */
     fun browsable(): List<com.mochyy.mochymusic.module.BrowsableSourceModule> =
         registry.all().filterIsInstance<com.mochyy.mochymusic.module.BrowsableSourceModule>()
+            .filter { com.mochyy.mochymusic.module.ModuleFeature.AudioSource in it.adds }
+            // a server reached over plain http, or one of mochy's own: never a module that runs code of its own on this phone
+            .filter { registry.originOf(it.info.id).let { origin -> origin is ModuleOrigin.BuiltIn || origin is ModuleOrigin.Web } }
 
     /**
      * what the search page's "where to search" list offers: SoundCloud and Yandex as they always were,

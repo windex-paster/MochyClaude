@@ -160,6 +160,8 @@ class ModuleRegistry @Inject constructor(
 
     fun module(id: String): MochyModule? = modules.firstOrNull { it.first.info.id == id }?.first
 
+    fun originOf(id: String): ModuleOrigin? = modules.firstOrNull { it.first.info.id == id }?.second
+
     fun all(): List<MochyModule> = modules.map { it.first }
 
     // youtube starts on, modules start off until they're turned on (or signed in to)
