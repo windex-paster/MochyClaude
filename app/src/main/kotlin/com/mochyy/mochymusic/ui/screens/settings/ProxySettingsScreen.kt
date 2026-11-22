@@ -227,13 +227,13 @@ fun ProxySettingsScreen(navController: NavController) {
                 ),
                 SettingsItem(
                     title = { Text(stringResource(if (sitesRunning) R.string.proxy_sites_checking else R.string.proxy_sites_check)) },
-                    descriptionText = sites?.joinToString("\n") { site ->
+                    descriptionText = sites?.map { site ->
                         when {
                             site.code == null -> stringResource(R.string.proxy_site_failed, site.name, site.problem.orEmpty())
                             site.code == 403 || site.code == 429 -> stringResource(R.string.proxy_site_blocked, site.name, site.code)
                             else -> stringResource(R.string.proxy_site_ok, site.name, site.millis?.toInt() ?: 0)
                         }
-                    } ?: stringResource(R.string.proxy_sites_desc),
+                    }?.joinToString("\n") ?: stringResource(R.string.proxy_sites_desc),
                     icon = painterResource(R.drawable.network_update),
                     iconShape = CircleShape,
                     enabled = !sitesRunning,
