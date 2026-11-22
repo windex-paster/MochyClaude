@@ -209,6 +209,13 @@ class SourceModules @Inject constructor(
     fun browsable(): List<com.mochyy.mochymusic.module.BrowsableSourceModule> =
         registry.all().filterIsInstance<com.mochyy.mochymusic.module.BrowsableSourceModule>()
 
+    /**
+     * what the search page's "where to search" list offers: SoundCloud and Yandex as they always were,
+     * every other source with a search of its own only while it is switched on in the modules (and signed in, if it asks for that)
+     */
+    fun searchable(): List<com.mochyy.mochymusic.module.BrowsableSourceModule> =
+        browsable().filter { it.info.id == "soundcloud" || it.info.id == "yandex" || isUsable(it.info.id) }
+
     fun browsable(id: String): com.mochyy.mochymusic.module.BrowsableSourceModule? =
         browsable().firstOrNull { it.info.id == id }
 

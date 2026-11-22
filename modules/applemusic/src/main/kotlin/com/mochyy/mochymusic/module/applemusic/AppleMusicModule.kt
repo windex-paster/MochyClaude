@@ -1,6 +1,8 @@
 package com.mochyy.mochymusic.module.applemusic
 
 import com.mochyy.mochymusic.module.AccountState
+import com.mochyy.mochymusic.module.BrowsableSourceModule
+import com.mochyy.mochymusic.module.SearchHit
 import com.mochyy.mochymusic.module.DiagnosticStep
 import com.mochyy.mochymusic.module.HttpRequest
 import com.mochyy.mochymusic.module.HttpResponse
@@ -47,7 +49,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Apple's own DRM) and downloads (no offline licenses; the audio is never decrypted outside the
  * CDM).
  */
-class AppleMusicModule : SourceModule {
+class AppleMusicModule : SourceModule, BrowsableSourceModule {
 
     override val info = ModuleInfo(
         id = Id,
@@ -211,6 +213,54 @@ class AppleMusicModule : SourceModule {
         }
         report(DiagnosticStep("Stream", false, lastProblem))
         return ResolveResult.Unavailable(lastProblem)
+    }
+
+    // ---- the search page: Apple Music as a source of its own -----------------------------------
+
+    override val searchLabel = "Apple Music"
+
+    // the songs of the latest searches with their covers, so a press on one needn't ask Apple again
+    private val seen = java.util.concurrent.ConcurrentHashMap<String, CatalogTrack>()
+
+    override suspend fun search(query: String, limit: Int): List<SearchHit> {
+        val q = query.trim()
+        if (q.isEmpty()) return emptyList()
+        if (userToken == null) throw com.mochyy.mochymusic.module.ModuleUnavailable("Sign in to Apple Music first")
+        val region = storefront ?: "us"
+        val response = api("/v1/catalog/$region/search?term=${enc(q)}&types=songs&limit=${limit.coerceIn(1, 25)}")
+        if (!response.ok) throw com.mochyy.mochymusic.module.ModuleUnavailable("Apple Music search answered ${response.code}")
+        val data = parse(response).jsonObject["results"]?.jsonObject?.get("songs")?.jsonObject?.get("data") as? JsonArray
+        return data.orEmpty().mapNotNull { element ->
+            val obj = element.jsonObject
+            val song = songsIn(JsonArray(listOf(obj))).firstOrNull() ?: return@mapNotNull null
+            seen[song.id] = song
+            val art = obj["attributes"]?.jsonObject?.get("artwork")?.jsonObject?.string("url")
+                ?.replace("{w}", "500")?.replace("{h}", "500")
+            SearchHit(
+                id = song.id,
+                title = song.title,
+                artist = song.artist,
+                durationMs = song.durationMs,
+                artworkUrl = art,
+                pageUrl = obj["attributes"]?.jsonObject?.string("url"),
+            )
+        }
+    }
+
+    override suspend fun streamFor(id: String, picks: Map<String, String>): ResolveResult {
+        val token = userToken ?: return ResolveResult.Unavailable("Sign in to Apple Music first")
+        val song = seen[id] ?: run {
+            val region = picks[ChoiceRegion]?.takeIf { it != RegionAuto } ?: storefront ?: "us"
+            val response = api("/v1/catalog/$region/songs/${enc(id)}")
+            if (!response.ok) return ResolveResult.Unavailable("Apple Music answered ${response.code}")
+            songsIn(parse(response).array("data")).firstOrNull() ?: return ResolveResult.NotFound("Apple Music doesn't list this song")
+        }
+        val quality = picks[ChoiceQuality] ?: OptionAac256
+        val query = TrackQuery(song.title, listOf(song.artist), song.album, song.durationMs, song.isrc)
+        return when (val result = webPlaybackStream(song, quality, token, query)) {
+            is StreamAttempt.Ok -> ResolveResult.Found(result.stream)
+            is StreamAttempt.Problem -> ResolveResult.Unavailable(result.reason)
+        }
     }
 
     private sealed interface StreamAttempt {

@@ -1,6 +1,8 @@
 package com.mochyy.mochymusic.module.jiosaavn
 
 import com.mochyy.mochymusic.module.AccountState
+import com.mochyy.mochymusic.module.BrowsableSourceModule
+import com.mochyy.mochymusic.module.SearchHit
 import com.mochyy.mochymusic.module.CatalogTrack
 import com.mochyy.mochymusic.module.DiagnosticStep
 import com.mochyy.mochymusic.module.HttpRequest
@@ -28,7 +30,7 @@ import javax.crypto.spec.SecretKeySpec
 import kotlin.io.encoding.Base64
 
 /** jiosaavn's catalog as plain aac files up to 320 kbps, no account and no drm; it has no lossless and misses many big international labels */
-class JioSaavnModule : SourceModule {
+class JioSaavnModule : SourceModule, BrowsableSourceModule {
 
     override val info = ModuleInfo(
         id = Id,
@@ -154,8 +156,66 @@ class JioSaavnModule : SourceModule {
         )
     }
 
+    // ---- the search page: JioSaavn as a source of its own --------------------------------------
+
+    override val searchLabel = "JioSaavn"
+
+    // the songs of the latest searches, so a press on one needn't ask JioSaavn again
+    private val seen = ConcurrentHashMap<String, SaavnSong>()
+
+    override suspend fun search(query: String, limit: Int): List<SearchHit> {
+        val q = query.trim()
+        if (q.isEmpty()) return emptyList()
+        val response = runCatching { host.http(HttpRequest(searchUrl(q, limit.coerceIn(1, 30)), headers = headers)) }.getOrElse {
+            markUnreachable("JioSaavn didn't answer")
+            throw com.mochyy.mochymusic.module.ModuleUnavailable("JioSaavn didn't answer")
+        }
+        if (!response.ok) throw com.mochyy.mochymusic.module.ModuleUnavailable("JioSaavn answered ${response.code}")
+        host.storage.set("unreachable", null)
+        return songsIn(response.text).map { song ->
+            seen[song.catalog.id] = song
+            SearchHit(
+                id = song.catalog.id,
+                title = song.catalog.title,
+                artist = song.catalog.artist,
+                durationMs = song.catalog.durationMs,
+                artworkUrl = song.image,
+            )
+        }
+    }
+
+    override suspend fun streamFor(id: String, picks: Map<String, String>): ResolveResult {
+        val song = seen[id] ?: return ResolveResult.NotFound("Search again to play this song")
+        val given = decryptMediaUrl(song.encryptedUrl) ?: return ResolveResult.Unavailable("JioSaavn's link couldn't be read")
+        val wanted = when (picks[ChoiceQuality] ?: Option320) {
+            Option96 -> 96
+            Option160 -> 160
+            else -> if (song.has320) 320 else 160
+        }
+        val stream = streamAt(given, wanted)
+        return ResolveResult.Found(
+            SourceStream(
+                url = stream.url,
+                format = StreamFormat.Progressive,
+                headers = streamHeaders,
+                sourceLabel = "JioSaavn",
+                qualityLabel = stream.kbps?.let { "AAC $it" } ?: "AAC",
+                codec = "AAC",
+                sampleRateHz = 44_100,
+                matched = MatchedTrack(
+                    id = song.catalog.id,
+                    title = song.catalog.title,
+                    artist = song.catalog.artist,
+                    album = song.catalog.album,
+                    durationMs = song.catalog.durationMs,
+                    confidence = 1f,
+                ),
+            )
+        )
+    }
+
     /** a song from the search, with what's needed to stream it */
-    internal class SaavnSong(val catalog: CatalogTrack, val encryptedUrl: String, val has320: Boolean)
+    internal class SaavnSong(val catalog: CatalogTrack, val encryptedUrl: String, val has320: Boolean, val image: String? = null)
 
     internal class SaavnStream(val url: String, val kbps: Int?)
 
@@ -179,6 +239,7 @@ class JioSaavnModule : SourceModule {
                 ),
                 encryptedUrl = encrypted,
                 has320 = more.string("320kbps").equals("true", ignoreCase = true),
+                image = song.string("image")?.replace("150x150", "500x500")?.replace("50x50", "500x500"),
             )
         }
     }

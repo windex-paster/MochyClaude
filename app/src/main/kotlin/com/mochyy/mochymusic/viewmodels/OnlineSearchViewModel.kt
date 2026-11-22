@@ -47,7 +47,7 @@ constructor(
     val viewStateMap = mutableStateMapOf<String, ItemsPage?>()
 
     // the sources with a search of their own (SoundCloud), a chip each; YouTube Music stays the default
-    val sources: List<BrowsableSourceModule> get() = sourceModules.browsable()
+    val sources: List<BrowsableSourceModule> get() = sourceModules.searchable()
     val sourceStates = mutableStateMapOf<String, SourceSearchState>()
 
     fun source(id: String): BrowsableSourceModule? = sourceModules.browsable(id)
