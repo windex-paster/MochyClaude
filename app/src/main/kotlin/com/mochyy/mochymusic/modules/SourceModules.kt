@@ -205,16 +205,26 @@ class SourceModules @Inject constructor(
 
     fun isEnabled(id: String): Boolean = registry.isEnabled(id)
 
-    /** the sources the search page can open as a chip of their own, in the order they were installed; they need not be in the provider order */
+    // a stable stand-in per module, so what its searches found is still there when a song is pressed
+    private val viaModules = java.util.concurrent.ConcurrentHashMap<String, ViaModule>()
+
+    /**
+     * the sources the search page can open as a chip of their own, in the order they were installed; they need not be in the provider order.
+     * A module with a search of its own is itself; every other module that plays songs is shown through [ViaModule], the way "test the module" tries it
+     */
     fun browsable(): List<com.mochyy.mochymusic.module.BrowsableSourceModule> =
-        registry.all().filterIsInstance<com.mochyy.mochymusic.module.BrowsableSourceModule>()
-            .filter { com.mochyy.mochymusic.module.ModuleFeature.AudioSource in it.adds }
-            // a server reached over plain http, or one of mochy's own: never a module that runs code of its own on this phone
-            .filter { registry.originOf(it.info.id).let { origin -> origin is ModuleOrigin.BuiltIn || origin is ModuleOrigin.Web } }
+        registry.all().mapNotNull { module ->
+            if (ModuleFeature.AudioSource !in module.adds) return@mapNotNull null
+            when {
+                module is com.mochyy.mochymusic.module.BrowsableSourceModule -> module
+                module is SourceModule -> viaModules.compute(module.info.id) { _, old -> old?.takeIf { it.inner === module } ?: ViaModule(module) }
+                else -> null
+            }
+        }
 
     /**
      * what the search page's "where to search" list offers: SoundCloud and Yandex as they always were,
-     * every other source with a search of its own only while it is switched on in the modules (and signed in, if it asks for that)
+     * every other source only while it is switched on in the modules (and signed in, if it asks for that)
      */
     fun searchable(): List<com.mochyy.mochymusic.module.BrowsableSourceModule> =
         browsable().filter { it.info.id == "soundcloud" || it.info.id == "yandex" || isUsable(it.info.id) }
