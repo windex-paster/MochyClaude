@@ -17,6 +17,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import okhttp3.ConnectionPool
 import okhttp3.Credentials
+import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
@@ -45,8 +46,21 @@ object AppProxy {
     var current: ProxyConfig? = null
         private set
 
-    // one pool for every client that follows the proxy, so a new proxy can drop the idle connections that went the old way
+    // one pool and dispatcher for every client in the app, so dozens of helpers don't each spin up their own thread pools
     internal val connectionPool = ConnectionPool()
+    internal val dispatcher = Dispatcher().apply {
+        maxRequests = 64
+        maxRequestsPerHost = 10
+    }
+
+    // shared base client so callers can use newBuilder() instead of allocating fresh pools and executors
+    val sharedClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .dispatcher(dispatcher)
+            .connectionPool(connectionPool)
+            .followAppProxy()
+            .build()
+    }
 
     // the phone's own proxy setting, read before ours takes over as the process-wide one
     private val system: ProxySelector? = ProxySelector.getDefault()
@@ -143,7 +157,7 @@ object AppProxy {
     suspend fun check(config: ProxyConfig): Result<Long> = withContext(Dispatchers.IO) {
         runCatching {
             useSocksLogin(config)
-            val client = OkHttpClient.Builder()
+            val client = sharedClient.newBuilder()
                 .proxy(Proxy(config.type, config.address))
                 .proxyAuthenticator { _, response ->
                     if (config.type != Proxy.Type.HTTP || !config.hasLogin || response.request.header(ProxyAuthHeader) != null) {
@@ -232,4 +246,5 @@ fun OkHttpClient.Builder.followAppProxy(): OkHttpClient.Builder =
                 response.request.newBuilder().header(ProxyAuthHeader, auth).build()
             }
         }
+        .dispatcher(AppProxy.dispatcher)
         .connectionPool(AppProxy.connectionPool)
