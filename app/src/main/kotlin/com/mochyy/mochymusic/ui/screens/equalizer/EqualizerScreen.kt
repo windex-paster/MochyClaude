@@ -10,7 +10,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -182,7 +186,12 @@ private fun Presets(
 ) {
     // your own picked preset can be renamed or deleted from here, the built in ones can't
     val ownPicked = eq.presetId?.takeIf { id -> presets.any { it.id == id } }
-    LabSectionLabel(stringResource(R.string.eqx_presets)) {
+    // the buttons get their own row: beside the title they squeezed it into a column of letters
+    LabSectionLabel(stringResource(R.string.eqx_presets))
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         LabTextAction(stringResource(R.string.eqx_reset), R.drawable.refresh, onClick = onReset)
         if (ownPicked != null) LabTextAction(stringResource(R.string.edit), R.drawable.edit) { onEdit(ownPicked) }
         LabTextAction(stringResource(R.string.eqx_save), R.drawable.add, onClick = onSave)

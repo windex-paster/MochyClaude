@@ -21,7 +21,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -62,7 +65,10 @@ internal data class SearchSourceChoice(
     val art: String? = null,
 )
 
-/** a service's own logo, cut to its outline */
+/** a service's own logo, cut to its outline (also drawn small on the search page's start) */
+@Composable
+internal fun SearchSourceLogo(choice: SearchSourceChoice, size: androidx.compose.ui.unit.Dp) = SourceLogo(choice, size)
+
 @Composable
 private fun SourceLogo(choice: SearchSourceChoice, size: androidx.compose.ui.unit.Dp) {
     if (choice.moduleId != null) {
@@ -97,19 +103,24 @@ private fun SourceLogo(choice: SearchSourceChoice, size: androidx.compose.ui.uni
 private val MenuShape = RoundedCornerShape(30.dp)
 private val MenuWidth = 252.dp
 
-/** the round button: the picture of the place being searched */
+/** the button inside the search field, at its right end: the picture of the place being searched and a small arrow */
 @Composable
 internal fun SearchSourceButton(current: SearchSourceChoice, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(
+    Row(
         modifier = modifier
-            .size(SearchFieldHeight)
             .clip(CircleShape)
-            .background(SearchColors.TileHigh)
-            .border(1.dp, Color.White.copy(alpha = 0.14f), CircleShape)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = RemoteFocus, onClick = onClick),
-        contentAlignment = Alignment.Center,
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = RemoteFocus, onClick = onClick)
+            .padding(start = 2.dp, top = 4.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         SourceLogo(current, 28.dp)
+        Icon(
+            painter = painterResource(R.drawable.expand_more),
+            contentDescription = null,
+            tint = SearchColors.Secondary,
+            modifier = Modifier.size(18.dp),
+        )
     }
 }
 
@@ -170,6 +181,8 @@ internal fun SearchSourceMenu(
                         color = Color.White.copy(alpha = 0.55f),
                         modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 6.dp, bottom = 4.dp),
                     )
+                    // four places at a time, the rest scroll; the fifth shows by half so it's clear there's more
+                    Column(modifier = Modifier.heightIn(max = 232.dp).verticalScroll(rememberScrollState())) {
                     choices.forEachIndexed { index, choice ->
                         Row(
                             modifier = Modifier
@@ -208,6 +221,7 @@ internal fun SearchSourceMenu(
                                 )
                             }
                         }
+                    }
                     }
                 }
             }

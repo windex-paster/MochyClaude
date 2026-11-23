@@ -81,6 +81,7 @@ import com.mochyy.mochymusic.constants.PauseSearchHistoryKey
 import com.mochyy.mochymusic.constants.ProfilePicUriKey
 import com.mochyy.mochymusic.db.entities.SearchHistory
 import com.mochyy.mochymusic.models.toMediaMetadata
+import com.mochyy.mochymusic.extensions.toMediaItem
 import com.mochyy.mochymusic.playback.queues.YouTubeQueue
 import com.mochyy.mochymusic.ui.component.GlassState
 import com.mochyy.mochymusic.ui.component.glassRoot
@@ -137,6 +138,15 @@ fun SearchScreen(
         mutableStateOf(TextFieldValue())
     }
     var active by rememberSaveable { mutableStateOf(false) }
+    // the place to search picked on this page's start (null is YouTube Music)
+    var homeSource by rememberSaveable { mutableStateOf<String?>(null) }
+    var historyOpen by rememberSaveable { mutableStateOf(false) }
+    val homeViewModel: SearchHomeViewModel = hiltViewModel()
+    val homeSources by homeViewModel.sources.collectAsState()
+    val recentSongs by homeViewModel.recentSongs.collectAsState()
+    val homeHistory by homeViewModel.history.collectAsState()
+    // a place that got switched off falls back to YouTube Music
+    val pickedSource = homeSource?.takeIf { id -> homeSources.any { it.id == id } }
 
     val suggestionViewModel: OnlineSearchSuggestionViewModel = hiltViewModel()
     val suggestionState by suggestionViewModel.viewState.collectAsState()
@@ -164,7 +174,7 @@ fun SearchScreen(
         { maxOf(collapse.value, activeProgress.value) }
     }
 
-    val commit: (String) -> Unit = remember(navController, pauseSearchHistory, offlineMode) {
+    val commit: (String) -> Unit = remember(navController, pauseSearchHistory, offlineMode, pickedSource) {
         { raw ->
             val text = raw.trim()
             if (offlineMode && text.isNotEmpty()) {
@@ -180,8 +190,10 @@ fun SearchScreen(
                     is YouTubeUrlParser.ParsedUrl.Artist ->
                         navController.navigate("artist/${parsed.id}")
 
-                    null ->
+                    null -> {
+                        SearchSourceHandoff.set(pickedSource)
                         navController.navigate(searchRoute(text))
+                    }
                 }
                 if (!pauseSearchHistory) {
                     coroutineScope.launch(Dispatchers.IO) {
@@ -196,6 +208,36 @@ fun SearchScreen(
         active = false
         focusManager.clearFocus()
         keyboardController?.hide()
+    }
+
+    // voice search: the phone's own speech recognizer; what it hears is searched at once
+    val voiceContext = androidx.compose.ui.platform.LocalContext.current
+    val voiceLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val said = result.data
+            ?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
+            ?.firstOrNull()
+        if (result.resultCode == android.app.Activity.RESULT_OK && !said.isNullOrBlank()) {
+            query = TextFieldValue(said, TextRange(said.length))
+            commit(said)
+        }
+    }
+    val voicePrompt = stringResource(R.string.search_voice_prompt)
+    val voiceMissing = stringResource(R.string.search_voice_unavailable)
+    val startVoice: () -> Unit = {
+        val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+            )
+            putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, voicePrompt)
+        }
+        try {
+            voiceLauncher.launch(intent)
+        } catch (_: android.content.ActivityNotFoundException) {
+            android.widget.Toast.makeText(voiceContext, voiceMissing, android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 
     LaunchedEffect(active) {
@@ -253,6 +295,34 @@ fun SearchScreen(
                     SearchBrowseContent(
                         listState = browseListState,
                         navController = navController,
+                        home = HomeParts(
+                            sources = homeSources,
+                            selected = pickedSource,
+                            onSelect = { homeSource = it },
+                            recentSongs = recentSongs,
+                            onPlayRecent = { index ->
+                                playerConnection?.playQueue(
+                                    com.mochyy.mochymusic.playback.queues.ListQueue(
+                                        title = null,
+                                        items = recentSongs.map { it.toMediaItem() },
+                                        startIndex = index,
+                                    ),
+                                )
+                            },
+                            history = homeHistory,
+                            historyOpen = historyOpen,
+                            onToggleHistory = { historyOpen = !historyOpen },
+                            onClearHistory = {
+                                coroutineScope.launch(Dispatchers.IO) { database.query { clearSearchHistory() } }
+                            },
+                            onOpenHistory = { text ->
+                                query = TextFieldValue(text, TextRange(text.length))
+                                commit(text)
+                            },
+                            onDeleteHistory = { entry ->
+                                coroutineScope.launch(Dispatchers.IO) { database.query { delete(entry) } }
+                            },
+                        ),
                     )
                 }
             }
@@ -331,7 +401,20 @@ fun SearchScreen(
                         )
                     }
                 } else {
-                    null
+                    {
+                        Icon(
+                            painter = painterResource(R.drawable.mic),
+                            contentDescription = stringResource(R.string.search_voice),
+                            tint = SearchColors.Secondary,
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = RemoteFocus,
+                                    onClick = startVoice,
+                                ),
+                        )
+                    }
                 },
                 focusRequester = focusRequester,
                 onFocusChanged = { focused -> if (focused) active = true },
@@ -349,12 +432,15 @@ fun SearchScreen(
 private fun SearchBrowseContent(
     listState: LazyListState,
     navController: NavController,
+    // the start page's own parts (places, last tracks, history); null on the side pane, which keeps only the genres
+    home: HomeParts? = null,
     viewModel: MoodAndGenresViewModel = hiltViewModel(),
     // tiles in a row: two upright, three in the wider pane on its side
     columns: Int = 2,
     topPadding: Dp = searchTopBarHeight(withTitle = true),
 ) {
     val sections by viewModel.moodAndGenres.collectAsState()
+    var genresOpen by rememberSaveable { mutableStateOf(false) }
     val bottomInset = LocalPlayerAwareWindowInsets.current
         .asPaddingValues()
         .calculateBottomPadding()
@@ -367,6 +453,7 @@ private fun SearchBrowseContent(
             bottom = bottomInset + 24.dp,
         ),
     ) {
+        if (home != null) homeItems(home)
         val list = sections
         if (list == null) {
             item(key = "loading") {
@@ -378,7 +465,10 @@ private fun SearchBrowseContent(
                 }
             }
         } else {
-            list.forEachIndexed { sectionIndex, section ->
+            // on the start page only the first six genres show until "more" is pressed
+            val limited = home != null && !genresOpen
+            val shownSections = if (limited) list.take(1) else list
+            shownSections.forEachIndexed { sectionIndex, section ->
                 item(key = "header_${sectionIndex}_${section.title}") {
                     SearchSectionHeader(
                         title = section.title,
@@ -386,7 +476,7 @@ private fun SearchBrowseContent(
                         ruleBelow = true,
                     )
                 }
-                val rows = section.items.chunked(columns)
+                val rows = (if (limited) section.items.take(HomeGenresShown) else section.items).chunked(columns)
                 itemsIndexed(
                     items = rows,
                     key = { rowIndex, _ -> "row_${sectionIndex}_$rowIndex" },
@@ -422,6 +512,80 @@ private fun SearchBrowseContent(
                 }
                 item(key = "gap_${sectionIndex}") { Spacer(modifier = Modifier.height(22.dp)) }
             }
+            if (limited && (list.size > 1 || (list.firstOrNull()?.items?.size ?: 0) > HomeGenresShown)) {
+                item(key = "genres_more") { HomeMoreButton { genresOpen = true } }
+            }
+        }
+    }
+}
+
+/** everything the start page needs besides the genres */
+private class HomeParts(
+    val sources: List<HomeSource>,
+    val selected: String?,
+    val onSelect: (String?) -> Unit,
+    val recentSongs: List<com.mochyy.mochymusic.db.entities.Song>,
+    val onPlayRecent: (Int) -> Unit,
+    val history: List<SearchHistory>,
+    val historyOpen: Boolean,
+    val onToggleHistory: () -> Unit,
+    val onClearHistory: () -> Unit,
+    val onOpenHistory: (String) -> Unit,
+    val onDeleteHistory: (SearchHistory) -> Unit,
+)
+
+private fun androidx.compose.foundation.lazy.LazyListScope.homeItems(home: HomeParts) {
+    if (home.sources.size > 1) {
+        item(key = "home_sources") {
+            Box(Modifier.padding(top = 4.dp, bottom = 8.dp)) {
+                HomeSources(home.sources, home.selected, home.onSelect)
+            }
+        }
+    }
+    if (home.recentSongs.isNotEmpty()) {
+        item(key = "home_recent_header") {
+            SearchSectionHeader(title = stringResource(R.string.search_recently_played), ruleAbove = false)
+        }
+        item(key = "home_recent") {
+            HomeRecentTracks(home.recentSongs, home.onPlayRecent)
+            Spacer(Modifier.height(18.dp))
+        }
+    }
+    if (home.history.isNotEmpty()) {
+        item(key = "home_history_header") {
+            SearchSectionHeader(title = stringResource(R.string.search_history), ruleAbove = false)
+        }
+        items(home.history.take(HomeHistoryShown), key = { "home_history_${it.id}" }) { entry ->
+            SearchSimpleRow(
+                text = entry.query,
+                leadingIcon = R.drawable.history,
+                onClick = { home.onOpenHistory(entry.query) },
+                trailing = { RowGlyph(R.drawable.close) { home.onDeleteHistory(entry) } },
+            )
+        }
+        if (home.history.size > HomeHistoryShown) {
+            item(key = "home_history_rest") {
+                HomeExpandable(home.historyOpen) {
+                    Column {
+                        home.history.drop(HomeHistoryShown).forEach { entry ->
+                            SearchSimpleRow(
+                                text = entry.query,
+                                leadingIcon = R.drawable.history,
+                                onClick = { home.onOpenHistory(entry.query) },
+                                trailing = { RowGlyph(R.drawable.close) { home.onDeleteHistory(entry) } },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        item(key = "home_history_buttons") {
+            HomeHistoryButtons(
+                open = home.historyOpen,
+                canOpen = home.history.size > HomeHistoryShown,
+                onClear = home.onClearHistory,
+                onToggle = home.onToggleHistory,
+            )
         }
     }
 }

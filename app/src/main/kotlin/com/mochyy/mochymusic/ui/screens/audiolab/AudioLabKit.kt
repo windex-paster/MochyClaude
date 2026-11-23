@@ -281,6 +281,8 @@ fun LabSectionLabel(text: String, modifier: Modifier = Modifier, actions: @Compo
             fontSize = 12.sp,
             letterSpacing = 1.4.sp,
             color = LabColors.Secondary,
+            maxLines = 1,
+            softWrap = false,
             modifier = Modifier.weight(1f),
         )
         actions()
@@ -308,7 +310,7 @@ fun LabTextAction(text: String, iconRes: Int? = null, enabled: Boolean = true, b
             Spacer(Modifier.width(6.dp))
         }
         Text(text, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
-            color = if (enabled) Color.White else LabColors.Faint)
+            color = if (enabled) Color.White else LabColors.Faint, maxLines = 1, softWrap = false)
     }
 }
 

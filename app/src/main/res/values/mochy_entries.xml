@@ -23,4 +23,12 @@
     <string name="proxy_site_ok">✓ %1$s · %2$d ms</string>
     <string name="proxy_site_blocked">✗ %1$s · answered %2$d, the service refuses this proxy address</string>
     <string name="proxy_site_failed">✗ %1$s · no answer (%2$s)</string>
+    <string name="search_recently_played">Recently played</string>
+    <string name="search_history_clear_all">Clear all history</string>
+    <string name="search_history_all">All history</string>
+    <string name="search_history_fewer">Show less</string>
+    <string name="search_genres_more">More</string>
+    <string name="search_voice">Voice search</string>
+    <string name="search_voice_prompt">Say what to find</string>
+    <string name="search_voice_unavailable">This phone has no speech recognition</string>
 </resources>

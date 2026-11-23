@@ -42,6 +42,9 @@ constructor(
 ) : ViewModel() {
     // navigation already decoded it, decoding again turned a typed + into a space
     val query = savedStateHandle.get<String>("query").orEmpty()
+
+    /** the place picked on the search page before this one opened, if any */
+    val initialSource: String? = com.mochyy.mochymusic.ui.screens.search.SearchSourceHandoff.take()
     val filter = MutableStateFlow<YouTube.SearchFilter?>(null)
     var summaryPage by mutableStateOf<SearchSummaryPage?>(null)
     val viewStateMap = mutableStateMapOf<String, ItemsPage?>()

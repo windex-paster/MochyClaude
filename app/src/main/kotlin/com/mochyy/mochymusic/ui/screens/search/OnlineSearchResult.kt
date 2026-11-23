@@ -142,7 +142,7 @@ fun OnlineSearchResult(
 
     val searchFilter by viewModel.filter.collectAsState()
     // null is YouTube Music, otherwise the id of a source with its own search (SoundCloud)
-    var sourceId by rememberSaveable { mutableStateOf<String?>(null) }
+    var sourceId by rememberSaveable { mutableStateOf(viewModel.initialSource?.takeIf { id -> viewModel.sources.any { it.info.id == id } }) }
     LaunchedEffect(sourceId) { sourceId?.let(viewModel::loadSource) }
     // 0 is "All", 1 the songs, then the module's kinds (artists, albums, playlists)
     var sourceCat by rememberSaveable { mutableStateOf(0) }
@@ -187,11 +187,13 @@ fun OnlineSearchResult(
 
     BackHandler { navController.navigateUp() }
 
-    val submit: (String) -> Unit = remember(navController, pauseSearchHistory) {
+    val submit: (String) -> Unit = remember(navController, pauseSearchHistory, sourceId) {
         { raw ->
             val text = raw.trim()
             if (text.isNotEmpty() && text != viewModel.query) {
                 focusManager.clearFocus()
+                // a new search from here keeps the place that's picked
+                SearchSourceHandoff.set(sourceId)
                 navController.navigate(searchRoute(text)) {
                     popUpTo(searchRoute(viewModel.query)) {
                         inclusive = true
@@ -533,14 +535,6 @@ fun OnlineSearchResult(
             pureBlack = pureBlack,
             title = null,
             collapseBelow = true,
-            trailing = if (sourceChoices.size < 2) null else {
-                {
-                    SearchSourceButton(
-                        current = sourceChoices[sourceIndexNow + 1],
-                        onClick = { sourceMenu = true },
-                    )
-                }
-            },
             below = if (!portraitChips) null else {
                 {
                     SourceAndCategoryRows(
@@ -584,6 +578,30 @@ fun OnlineSearchResult(
                                 indication = RemoteFocus,
                             ) { navController.navigateUp() },
                     )
+                },
+                // the place to search sits inside the field, at its right end
+                trailing = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        if (query.text.isNotEmpty()) {
+                            Icon(
+                                painter = painterResource(R.drawable.close),
+                                contentDescription = null,
+                                tint = SearchColors.Secondary,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = RemoteFocus,
+                                    ) { query = TextFieldValue("") },
+                            )
+                        }
+                        if (sourceChoices.size > 1) {
+                            SearchSourceButton(
+                                current = sourceChoices[sourceIndexNow + 1],
+                                onClick = { sourceMenu = true },
+                            )
+                        }
+                    }
                 },
             )
         }
