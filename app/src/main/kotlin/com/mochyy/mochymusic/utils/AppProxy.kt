@@ -48,7 +48,22 @@ object AppProxy {
 
     // one pool and dispatcher for every client in the app, so dozens of helpers don't each spin up their own thread pools
     internal val connectionPool = ConnectionPool()
-    internal val dispatcher = Dispatcher().apply {
+    // The youtube client (ktor) shuts its dispatcher's thread pool down whenever it is rebuilt, which happens each time the
+    // proxy or another setting changes. On a shared dispatcher that killed every request in the app afterwards
+    // ("executor rejected"), so the shutdown is ignored here: this pool lives as long as the process does.
+    private class KeepAlivePool(private val inner: java.util.concurrent.ExecutorService) :
+        java.util.concurrent.ExecutorService by inner {
+        override fun shutdown() = Unit
+        override fun shutdownNow(): MutableList<Runnable> = mutableListOf()
+    }
+
+    internal val dispatcher = Dispatcher(
+        KeepAlivePool(
+            java.util.concurrent.ThreadPoolExecutor(
+                0, Int.MAX_VALUE, 60L, TimeUnit.SECONDS, java.util.concurrent.SynchronousQueue(),
+            ) { task -> Thread(task, "OkHttp Dispatcher").apply { isDaemon = true } },
+        ),
+    ).apply {
         maxRequests = 64
         maxRequestsPerHost = 10
     }
