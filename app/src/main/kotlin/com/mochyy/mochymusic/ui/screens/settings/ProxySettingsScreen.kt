@@ -150,6 +150,30 @@ fun ProxySettingsScreen(navController: NavController) {
             modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 14.dp),
         )
 
+        // one tap for a VPN app's own local proxy (v2rayNG, Hiddify, NekoBox...): the VPN stays for Mochy only
+        SettingsGroup(
+            style = SettingsGroupStyle.Grouped,
+            items = listOf(
+                SettingsItem(
+                    title = { Text(stringResource(R.string.proxy_local_vpn)) },
+                    descriptionText = stringResource(R.string.proxy_local_vpn_desc),
+                    icon = painterResource(R.drawable.network_node),
+                    iconShape = CircleShape,
+                    onClick = {
+                        typeName = Proxy.Type.SOCKS.name
+                        address = "127.0.0.1:10808"
+                        username = ""
+                        password = ""
+                        everything = true
+                        enabled = true
+                        pill = Triple(++pillCount, true, context.getString(R.string.proxy_local_vpn_done))
+                    },
+                ),
+            ),
+        )
+
+        Spacer(Modifier.height(18.dp))
+
         SettingsGroup(
             style = SettingsGroupStyle.Grouped,
             items = listOf(

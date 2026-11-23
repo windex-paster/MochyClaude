@@ -21,6 +21,9 @@
     <string name="module_appearance_icon">Выбрать иконку</string>
     <string name="module_appearance_icon_reset">Сбросить иконку</string>
     <string name="module_appearance_note">Меняет только то, как приложение показывает модуль, сам модуль остаётся как есть. Оставь имя пустым, чтобы вернуть его собственное.</string>
+    <string name="proxy_local_vpn">Прокси моего VPN-приложения</string>
+    <string name="proxy_local_vpn_desc">Ставит SOCKS5 127.0.0.1:10808 и включает прокси. Сначала включи локальный прокси в VPN-приложении; если порт другой, поменяй его в «Адресе»</string>
+    <string name="proxy_local_vpn_done">Прокси: 127.0.0.1:10808</string>
     <string name="proxy_sites_check">Проверить каждый сервис</string>
     <string name="proxy_sites_checking">Проверяю сервисы…</string>
     <string name="proxy_sites_desc">Спрашивает YouTube Music, аудио YouTube, SoundCloud и Apple Music через прокси, чтобы было видно, какие проходят</string>

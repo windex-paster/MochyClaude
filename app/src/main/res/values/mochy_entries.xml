@@ -17,6 +17,9 @@
     <string name="search_src_yandex_desc">The main catalog</string>
     <string name="modules_trust_any_title">Trust any module (at your own risk)</string>
     <string name="modules_trust_any_desc">Skips the signature check, so modules signed with any key can run code inside the app. Turn on only for modules you trust. Applies after restarting the app.</string>
+    <string name="proxy_local_vpn">Use my VPN app\'s proxy</string>
+    <string name="proxy_local_vpn_desc">Sets SOCKS5 127.0.0.1:10808 and turns the proxy on. Turn on the local proxy in your VPN app first; if it uses another port, change it in Address</string>
+    <string name="proxy_local_vpn_done">Proxy set to 127.0.0.1:10808</string>
     <string name="proxy_sites_check">Check each service</string>
     <string name="proxy_sites_checking">Checking the services…</string>
     <string name="proxy_sites_desc">Asks YouTube Music, YouTube audio, SoundCloud and Apple Music through the proxy, so you see which ones get through</string>
