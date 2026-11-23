@@ -250,7 +250,8 @@ fun ProxySettingsScreen(navController: NavController) {
                                 sitesRunning = false
                                 // the answer also pops up at the top: what gets through, and what doesn't
                                 val passed = result.filter { it.code != null && it.code != 403 && it.code != 429 }.map { it.name }
-                                val refused = result.filter { it.code == null || it.code == 403 || it.code == 429 }.map { it.name }
+                                val refused = result.filter { it.code == null || it.code == 403 || it.code == 429 }
+                                    .map { site -> site.name + (site.problem?.let { " ($it)" } ?: site.code?.let { " ($it)" }.orEmpty()) }
                                 val lines = listOfNotNull(
                                     passed.takeIf { it.isNotEmpty() }?.let { context.getString(R.string.proxy_sites_pill_ok, it.joinToString(", ")) },
                                     refused.takeIf { it.isNotEmpty() }?.let { context.getString(R.string.proxy_sites_pill_bad, it.joinToString(", ")) },
@@ -289,7 +290,7 @@ fun ProxySettingsScreen(navController: NavController) {
                         ) {
                             Box(Modifier.size(10.dp).background(if (ok) Color(0xFF30D158) else Color(0xFFFF453A), CircleShape))
                             Spacer(Modifier.size(10.dp))
-                            Text(text, color = Color.White, style = MaterialTheme.typography.bodyMedium, maxLines = 3)
+                            Text(text, color = Color.White, style = MaterialTheme.typography.bodyMedium, maxLines = 6)
                         }
                     }
                 }
