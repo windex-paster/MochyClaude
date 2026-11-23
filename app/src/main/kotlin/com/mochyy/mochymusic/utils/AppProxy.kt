@@ -203,7 +203,28 @@ object AppProxy {
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .build()
-        sites.map { (name, url) ->
+        // the real thing last: an actual YouTube Music search through the same path the app uses,
+        // since a bare page can load while a search (a POST with a body) hangs
+        val search = async {
+            val started = System.nanoTime()
+            if (current != config) {
+                SiteCheck("YouTube Music search", null, null, "proxy is off")
+            } else {
+                runCatching {
+                    kotlinx.coroutines.withTimeout(25_000) {
+                        YouTube.search("test", YouTube.SearchFilter.FILTER_SONG).getOrThrow()
+                    }
+                }.fold(
+                    onSuccess = { SiteCheck("YouTube Music search", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started), 200, null) },
+                    onFailure = {
+                        val what = if (it is kotlinx.coroutines.TimeoutCancellationException) "no answer in 25 s"
+                        else (it.javaClass.simpleName + it.message?.let { m -> ": " + m.take(60) }.orEmpty())
+                        SiteCheck("YouTube Music search", null, null, what)
+                    },
+                )
+            }
+        }
+        val pages = sites.map { (name, url) ->
             async {
                 val started = System.nanoTime()
                 runCatching {
@@ -213,7 +234,8 @@ object AppProxy {
                     onFailure = { SiteCheck(name, null, null, it.javaClass.simpleName.removeSuffix("Exception").ifBlank { "error" }) },
                 )
             }
-        }.awaitAll()
+        }
+        pages.awaitAll() + search.await()
     }
 
     // socks has no header for a login, java asks this one global authenticator instead
