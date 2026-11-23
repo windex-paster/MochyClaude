@@ -111,6 +111,7 @@ fun ProxySettingsScreen(navController: NavController) {
     var sites by remember { mutableStateOf<List<AppProxy.SiteCheck>?>(null) }
     var sitesRunning by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     // a changed setting makes the last check's answer stale
     LaunchedEffect(config) {
@@ -244,8 +245,17 @@ fun ProxySettingsScreen(navController: NavController) {
                         } else {
                             sitesRunning = true
                             scope.launch {
-                                sites = AppProxy.checkSites(target)
+                                val result = AppProxy.checkSites(target)
+                                sites = result
                                 sitesRunning = false
+                                // the answer also pops up at the top: what gets through, and what doesn't
+                                val passed = result.filter { it.code != null && it.code != 403 && it.code != 429 }.map { it.name }
+                                val refused = result.filter { it.code == null || it.code == 403 || it.code == 429 }.map { it.name }
+                                val lines = listOfNotNull(
+                                    passed.takeIf { it.isNotEmpty() }?.let { context.getString(R.string.proxy_sites_pill_ok, it.joinToString(", ")) },
+                                    refused.takeIf { it.isNotEmpty() }?.let { context.getString(R.string.proxy_sites_pill_bad, it.joinToString(", ")) },
+                                )
+                                pill = Triple(++pillCount, refused.isEmpty(), lines.joinToString("\n"))
                             }
                         }
                     },

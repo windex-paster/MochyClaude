@@ -20,6 +20,8 @@
     <string name="proxy_sites_check">Check each service</string>
     <string name="proxy_sites_checking">Checking the services…</string>
     <string name="proxy_sites_desc">Asks YouTube Music, YouTube audio, SoundCloud and Apple Music through the proxy, so you see which ones get through</string>
+    <string name="proxy_sites_pill_ok">Works: %1$s</string>
+    <string name="proxy_sites_pill_bad">Doesn\'t work: %1$s</string>
     <string name="proxy_site_ok">✓ %1$s · %2$d ms</string>
     <string name="proxy_site_blocked">✗ %1$s · answered %2$d, the service refuses this proxy address</string>
     <string name="proxy_site_failed">✗ %1$s · no answer (%2$s)</string>
