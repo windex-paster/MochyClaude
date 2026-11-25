@@ -790,7 +790,7 @@ fun ProfileScreen(navController: NavController) {
                                 modifier = Modifier.graphicsLayer { alpha = 1f - collapseProgress },
                             )
                         }
-                        Spacer(Modifier.height(24.dp))
+                        Spacer(Modifier.height(6.dp))
                         ListeningTimeCard(totalListeningMs, onViewStats = { navController.navigate("stats") })
                         Spacer(Modifier.height(28.dp))
                         // the settings sit right here, so there is no plate to open them
@@ -1022,7 +1022,8 @@ private fun ListeningTimeCard(totalMs: Long, onViewStats: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
+            // sits right under the ID card as one piece with it: small top corners, round bottom ones
+            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 22.dp, bottomEnd = 22.dp))
             .background(PageCard)
             .clickable(onClick = onViewStats)
             .padding(CardPadding),
