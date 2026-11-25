@@ -40,4 +40,15 @@
     <string name="search_voice">Голосовой поиск</string>
     <string name="search_voice_prompt">Скажите, что найти</string>
     <string name="search_voice_unavailable">На этом телефоне нет распознавания речи</string>
+    <string name="scrobble_keys_item">API-ключ</string>
+    <string name="scrobble_keys_set">Свой ключ задан. Нажми, чтобы изменить</string>
+    <string name="scrobble_keys_unset">Нужен для входа: в этой сборке нет своего ключа</string>
+    <string name="scrobble_keys_title">API-ключ %1$s</string>
+    <string name="scrobble_keys_body">В этой сборке Mochy нет собственного ключа %1$s, поэтому для входа нужен твой. Он бесплатный и делается за минуту; хранится только на этом телефоне, в защищённом виде, как остальные секреты.</string>
+    <string name="scrobble_keys_key">API-ключ</string>
+    <string name="scrobble_keys_key_hint">Вставь API-ключ</string>
+    <string name="scrobble_keys_secret">Секрет (Shared secret)</string>
+    <string name="scrobble_keys_secret_hint">Вставь секрет</string>
+    <string name="scrobble_keys_save">Сохранить</string>
+    <string name="scrobble_keys_get">Получить бесплатный ключ: last.fm/api</string>
 </resources>

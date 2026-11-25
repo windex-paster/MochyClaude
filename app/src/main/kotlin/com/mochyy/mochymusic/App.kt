@@ -87,6 +87,14 @@ class App : Application(), SingletonImageLoader.Factory {
         // tokens saved before the vault existed are sealed on the first start after the update
         applicationScope.launch(kotlinx.coroutines.Dispatchers.IO) { (dataStore as? com.mochyy.mochymusic.utils.SecretPreferences)?.sealLeftovers() }
         com.mochyy.mochymusic.utils.NotRecommended.init(this)
+        // the last.fm / libre.fm keys a user typed in, kept applied to the client as they change
+        applicationScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            dataStore.data.collect { prefs ->
+                for (site in com.mochyy.mochymusic.scrobble.ScrobbleSite.values()) {
+                    site.api.useOwnKeys(prefs[site.ownKeyKey], prefs[site.ownSecretKey])
+                }
+            }
+        }
 
         applicationScope.launch(Dispatchers.IO) {
             try {

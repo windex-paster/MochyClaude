@@ -388,6 +388,10 @@ val EnableGoogleCastKey = booleanPreferencesKey("enableGoogleCast")
 
 val LastFMSessionKey = stringPreferencesKey("lastfmSession")
 val LastFMUsernameKey = stringPreferencesKey("lastfmUsername")
+val LastFMApiKeyKey = stringPreferencesKey("lastfmApiKey")
+val LastFMApiSecretKey = stringPreferencesKey("lastfmApiSecret")
+val LibreFmApiKeyKey = stringPreferencesKey("librefmApiKey")
+val LibreFmApiSecretKey = stringPreferencesKey("librefmApiSecret")
 val EnableLastFMScrobblingKey = booleanPreferencesKey("lastfmScrobblingEnable")
 
 val LibreFmSessionKey = stringPreferencesKey("librefmSession")

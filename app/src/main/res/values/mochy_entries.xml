@@ -36,4 +36,15 @@
     <string name="search_voice">Voice search</string>
     <string name="search_voice_prompt">Say what to find</string>
     <string name="search_voice_unavailable">This phone has no speech recognition</string>
+    <string name="scrobble_keys_item">API key</string>
+    <string name="scrobble_keys_set">Your own key is set. Tap to change it</string>
+    <string name="scrobble_keys_unset">Needed to sign in: this build has no key of its own</string>
+    <string name="scrobble_keys_title">%1$s API key</string>
+    <string name="scrobble_keys_body">This build of Mochy has no %1$s key of its own, so sign-in needs yours. It is free and takes a minute; it stays on this phone, sealed like the other secrets.</string>
+    <string name="scrobble_keys_key">API key</string>
+    <string name="scrobble_keys_key_hint">Paste the API key</string>
+    <string name="scrobble_keys_secret">Shared secret</string>
+    <string name="scrobble_keys_secret_hint">Paste the shared secret</string>
+    <string name="scrobble_keys_save">Save</string>
+    <string name="scrobble_keys_get">Get a free key at last.fm/api</string>
 </resources>

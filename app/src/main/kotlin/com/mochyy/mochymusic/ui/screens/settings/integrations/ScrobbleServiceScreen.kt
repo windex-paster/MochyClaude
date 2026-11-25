@@ -73,6 +73,11 @@ fun ScrobbleServiceScreen(
         }
     }
 
+    fun editKeys() {
+        var sheet: PopupSheetHandle? = null
+        sheet = overlay.showWithHandle { ScrobbleKeysContent(site = site, onDone = { sheet?.dismiss() }) }
+    }
+
     SubSettingsScaffold(
         title = site.label,
         onBack = { navController.navigateUp() },
@@ -83,6 +88,7 @@ fun ScrobbleServiceScreen(
             site = site,
             username = accounts[site],
             onSignIn = ::signIn,
+            onEditKeys = ::editKeys,
             onSignOut = { viewModel.signOut(site) },
         )
         Spacer(Modifier.height(16.dp))
@@ -137,22 +143,35 @@ private fun ScrobbleAccountGroup(
     site: ScrobbleSite,
     username: String?,
     onSignIn: () -> Unit,
+    onEditKeys: () -> Unit,
     onSignOut: () -> Unit,
 ) {
+    val (ownKey, _) = rememberPreference(site.ownKeyKey, defaultValue = "")
+    val (ownSecret, _) = rememberPreference(site.ownSecretKey, defaultValue = "")
+    // the build's own keys, or the ones typed in on this page
+    val configured = site.api.hasBuildKeys || (ownKey.isNotBlank() && ownSecret.isNotBlank())
     val (enabled, onEnabledChange) = rememberPreference(site.enabledKey, defaultValue = true)
     val uriHandler = LocalUriHandler.current
     val items = if (username == null) {
-        listOf(
+        listOfNotNull(
             SettingsItem(
                 title = { Text(stringResource(R.string.scrobble_sign_in_title, site.label)) },
                 highlightKey = site.label,
                 descriptionText = stringResource(
-                    if (site.api.isConfigured) R.string.scrobble_sign_in_desc else R.string.scrobble_not_set_up,
+                    if (configured) R.string.scrobble_sign_in_desc else R.string.scrobble_not_set_up,
                 ),
                 icon = painterResource(R.drawable.login),
                 iconShape = CircleShape,
-                enabled = site.api.isConfigured,
+                enabled = configured,
                 onClick = onSignIn,
+            ),
+            // a build without the service's own key lets the user bring theirs
+            if (site.api.hasBuildKeys) null else SettingsItem(
+                title = { Text(stringResource(R.string.scrobble_keys_item)) },
+                descriptionText = stringResource(if (configured) R.string.scrobble_keys_set else R.string.scrobble_keys_unset),
+                icon = painterResource(R.drawable.key),
+                iconShape = CircleShape,
+                onClick = onEditKeys,
             ),
         )
     } else {

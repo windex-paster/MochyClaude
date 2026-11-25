@@ -6,8 +6,12 @@ import androidx.datastore.preferences.core.Preferences
 import com.mochyy.mochymusic.BuildConfig
 import com.mochyy.mochymusic.constants.EnableLastFMScrobblingKey
 import com.mochyy.mochymusic.constants.EnableLibreFmScrobblingKey
+import com.mochyy.mochymusic.constants.LastFMApiKeyKey
+import com.mochyy.mochymusic.constants.LastFMApiSecretKey
 import com.mochyy.mochymusic.constants.LastFMSessionKey
 import com.mochyy.mochymusic.constants.LastFMUsernameKey
+import com.mochyy.mochymusic.constants.LibreFmApiKeyKey
+import com.mochyy.mochymusic.constants.LibreFmApiSecretKey
 import com.mochyy.mochymusic.constants.LibreFmSessionKey
 import com.mochyy.mochymusic.constants.LibreFmUsernameKey
 import com.music.lastfm.Audioscrobbler
@@ -26,6 +30,9 @@ enum class ScrobbleSite(
     /** where someone without an account makes one */
     val signUpUrl: String,
     val api: Audioscrobbler,
+    /** the api key and secret a user can type in when the build has none */
+    val ownKeyKey: Preferences.Key<String>,
+    val ownSecretKey: Preferences.Key<String>,
 ) {
     LASTFM(
         label = "Last.fm",
@@ -39,6 +46,8 @@ enum class ScrobbleSite(
             apiKey = BuildConfig.LASTFM_API_KEY,
             secret = BuildConfig.LASTFM_SECRET,
         ),
+        ownKeyKey = LastFMApiKeyKey,
+        ownSecretKey = LastFMApiSecretKey,
     ),
     LIBREFM(
         label = "Libre.fm",
@@ -53,6 +62,8 @@ enum class ScrobbleSite(
             secret = BuildConfig.LIBREFM_SECRET,
             signsInWithToken = true,
         ),
+        ownKeyKey = LibreFmApiKeyKey,
+        ownSecretKey = LibreFmApiSecretKey,
     );
 
     fun profileUrl(username: String) = profilePage + username

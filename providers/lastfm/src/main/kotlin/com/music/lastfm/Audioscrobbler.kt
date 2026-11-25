@@ -63,8 +63,24 @@ class Audioscrobbler(
     /** libre.fm only takes the old md5 login token on sign-in, it turns a plain password away */
     private val signsInWithToken: Boolean = false,
 ) {
-    /** false in a build made without this service's api key, which can't sign anyone in */
-    val isConfigured: Boolean get() = apiKey.isNotEmpty() && secret.isNotEmpty()
+    // keys the user typed in themselves: a build made without the service's own key (a fork, say) can't sign anyone in otherwise
+    @Volatile private var ownKey = ""
+    @Volatile private var ownSecret = ""
+
+    /** the key a build was made with wins, the user's own is used when the build has none; blank clears it */
+    fun useOwnKeys(key: String?, secret: String?) {
+        ownKey = key.orEmpty().trim()
+        ownSecret = secret.orEmpty().trim()
+    }
+
+    private val effectiveKey: String get() = apiKey.ifEmpty { ownKey }
+    private val effectiveSecret: String get() = secret.ifEmpty { ownSecret }
+
+    /** false with neither a key from the build nor one typed in, which can't sign anyone in */
+    val isConfigured: Boolean get() = effectiveKey.isNotEmpty() && effectiveSecret.isNotEmpty()
+
+    /** true when the build itself carries the keys, so nothing needs typing in */
+    val hasBuildKeys: Boolean get() = apiKey.isNotEmpty() && secret.isNotEmpty()
 
     /** signs in straight from mochy's own form, the password only goes to the service over https and isn't kept */
     suspend fun getMobileSession(username: String, password: String): AudioscrobblerSession {
@@ -104,7 +120,7 @@ class Audioscrobbler(
     private suspend fun call(method: String, params: Map<String, String> = emptyMap(), sessionKey: String? = null): JsonObject {
         val signed = buildMap {
             put("method", method)
-            put("api_key", apiKey)
+            put("api_key", effectiveKey)
             sessionKey?.let { put("sk", it) }
             putAll(params)
         }
@@ -134,7 +150,7 @@ class Audioscrobbler(
     }
 
     private fun signature(params: Map<String, String>): String =
-        md5(params.toSortedMap().entries.joinToString("") { it.key + it.value } + secret)
+        md5(params.toSortedMap().entries.joinToString("") { it.key + it.value } + effectiveSecret)
 
     private fun md5(text: String): String =
         MessageDigest.getInstance("MD5").digest(text.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
