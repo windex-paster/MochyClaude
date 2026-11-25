@@ -461,106 +461,65 @@ fun MochySettingsScreen(navController: NavController, pane: SettingsPane? = null
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // the categories in grouped cards, a coloured tile and a chevron to a row, a hairline between rows
+                    // laid out as in the design: small grey section labels over dark cards, each row a tile, a title and a line under it
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(22.dp)
                     ) {
-                        // in the order of the design: sound first, then how the app acts and looks, then the rest
+                        SettingsLabel(stringResource(R.string.mset_section_look))
                         SettingsGroup {
-                            SettingsRow(
-                                title = stringResource(R.string.settings_audio_lab_category),
-                                iconRes = R.drawable.equalizer,
-                                tile = Color(0xFFFF453A),
-                                selected = selected == "audio_lab",
-                                onClick = { open("audio_lab") }
-                            )
-                            SettingsRow(
-                                title = stringResource(R.string.settings_playback_category),
-                                iconRes = R.drawable.play,
-                                tile = Color(0xFFFF9F0A),
-                                selected = selected == PlaybackSettingsRoute,
-                                onClick = { open(PlaybackSettingsRoute) }
-                            )
-                            SettingsRow(
-                                title = stringResource(R.string.settings_now_playing),
-                                iconRes = R.drawable.lyrics,
-                                tile = Color(0xFF5E5CE6),
-                                selected = selected == NowPlayingSettingsRoute,
-                                onClick = { open(NowPlayingSettingsRoute) }
-                            )
-                            SettingsRow(
-                                title = stringResource(R.string.settings_app_behaviour),
-                                iconRes = R.drawable.settings,
-                                tile = Color(0xFF8E8E93),
-                                selected = selected == "general_settings",
-                                onClick = { open("general_settings") }
-                            )
-                            SettingsRow(
-                                title = stringResource(R.string.settings_customisation_category),
-                                iconRes = R.drawable.palette,
-                                tile = Color(0xFFAF52DE),
-                                selected = selected == "customisation_settings",
-                                onClick = { open("customisation_settings") },
-                                last = true
-                            )
+                            SettingsLinkRow(stringResource(R.string.settings_customisation_category), stringResource(R.string.mset_customisation_sub), R.drawable.palette, selected == "customisation_settings", { open("customisation_settings") })
+                            SettingsLinkRow(stringResource(R.string.settings_now_playing), stringResource(R.string.mset_now_playing_sub), R.drawable.lyrics, selected == NowPlayingSettingsRoute, { open(NowPlayingSettingsRoute) })
+                            SettingsLinkRow(stringResource(R.string.settings_app_behaviour), stringResource(R.string.mset_behaviour_sub), R.drawable.language, selected == "general_settings", { open("general_settings") }, last = true)
                         }
 
+                        SettingsLabel(stringResource(R.string.mset_section_audio))
                         SettingsGroup {
-                            SettingsRow(
-                                title = stringResource(R.string.storage),
-                                iconRes = R.drawable.storage,
-                                tile = Color(0xFF0A84FF),
-                                selected = selected == "storage_settings",
-                                onClick = { open("storage_settings") }
-                            )
-                            SettingsRow(
-                                title = stringResource(R.string.integrations),
-                                iconRes = R.drawable.integration,
-                                tile = Color(0xFF30D158),
-                                selected = selected == IntegrationsRoute,
-                                onClick = { open(IntegrationsRoute) }
-                            )
-                            SettingsRow(
-                                title = stringResource(R.string.devices_title),
-                                iconRes = R.drawable.cast_connected,
-                                tile = Color(0xFF64D2FF),
-                                selected = false,
-                                onClick = { open(com.mochyy.mochymusic.ui.screens.devices.DeviceIntegrationRoute) },
-                                last = true
-                            )
+                            SettingsLinkRow(stringResource(R.string.audio_quality), stringResource(R.string.mset_quality_sub), R.drawable.music_note, selected == "audio_quality", { open("audio_quality") })
+                            SettingsLinkRow(stringResource(R.string.mset_equalizer), stringResource(R.string.mset_equalizer_sub), R.drawable.equalizer, selected == "equalizer", { open("equalizer") })
+                            SettingsLinkRow(stringResource(R.string.settings_playback_category), stringResource(R.string.mset_playback_sub), R.drawable.speed, selected == PlaybackSettingsRoute, { open(PlaybackSettingsRoute) })
+                            SettingsLinkRow(stringResource(R.string.mset_crossfade), stringResource(R.string.mset_crossfade_sub), R.drawable.timer, selected == "crossmix_settings", { open("crossmix_settings") })
+                            SettingsLinkRow(stringResource(R.string.settings_audio_lab_category), stringResource(R.string.mset_audio_lab_sub), R.drawable.tune, selected == "audio_lab", { open("audio_lab") }, last = true)
                         }
 
+                        SettingsLabel(stringResource(R.string.mset_section_diagnostics))
                         SettingsGroup {
-                            SettingsRow(
-                                title = stringResource(R.string.settings_modules_category),
-                                iconRes = R.drawable.library_add,
-                                tile = Color(0xFFFF9F0A),
-                                selected = selected == "modules",
-                                onClick = { open("modules") },
-                                last = true
-                            )
+                            SettingsLinkRow(stringResource(R.string.mset_diagnostics), stringResource(R.string.mset_diagnostics_sub), R.drawable.bug_report, selected == "playback_diagnostics", { open("playback_diagnostics") }, last = true)
+                        }
+
+                        SettingsLabel(stringResource(R.string.mset_section_storage))
+                        SettingsGroup {
+                            SettingsLinkRow(stringResource(R.string.storage), stringResource(R.string.mset_storage_sub), R.drawable.storage, selected == "storage_settings", { open("storage_settings") }, last = true)
+                        }
+
+                        SettingsLabel(stringResource(R.string.mset_section_services))
+                        SettingsGroup {
+                            SettingsLinkRow(stringResource(R.string.integrations), stringResource(R.string.mset_integrations_sub), R.drawable.integration, selected == IntegrationsRoute, { open(IntegrationsRoute) })
+                            SettingsLinkRow(stringResource(R.string.devices_title), stringResource(R.string.mset_devices_sub), R.drawable.cast_connected, false, { open(com.mochyy.mochymusic.ui.screens.devices.DeviceIntegrationRoute) })
+                            SettingsLinkRow(stringResource(R.string.settings_modules_category), stringResource(R.string.mset_modules_sub), R.drawable.library_add, selected == "modules", { open("modules") }, last = true)
                         }
 
                         // pages the modules that are on bring to settings, right under modules
+                        Spacer(Modifier.height(12.dp))
                         com.mochyy.mochymusic.ui.screens.settings.modules.ModuleSettingsPages(open = open, selected = selected)
 
+                        SettingsLabel(stringResource(R.string.mset_section_about))
                         // the version sheet checks for a newer release as soon as it opens
                         SettingsGroup {
-                            SettingsRow(
+                            SettingsLinkRow(
                                 title = stringResource(R.string.settings_check_update),
+                                subtitle = stringResource(R.string.mset_update_sub),
                                 iconRes = R.drawable.update,
-                                tile = Color(0xFF34C759),
+                                selected = false,
                                 onClick = {
                                     sheets.showUpdateSheet(
                                         com.mochyy.mochymusic.core.updater.UpdateState.Checking,
                                         onOpenDevSpace = { person -> navController.navigate("developer_space?person=$person") },
                                     )
                                 },
-                                last = true
                             )
+                            SettingsValueRow(stringResource(R.string.mset_version), com.mochyy.mochymusic.BuildConfig.VERSION_NAME, last = true)
                         }
                     }
                 }
@@ -769,5 +728,76 @@ internal fun SettingsRow(
                     .background(Color.White.copy(alpha = 0.1f))
             )
         }
+    }
+}
+
+
+/** the small grey label over a card: "Playback and audio", "About the app" */
+@Composable
+internal fun SettingsLabel(text: String) {
+    Text(
+        text = text,
+        fontFamily = InterFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 13.sp,
+        color = Color(0xFF8E8E93),
+        modifier = Modifier.padding(start = 6.dp, top = 22.dp, bottom = 8.dp),
+    )
+}
+
+/** a row with a dark icon tile, the title, a grey line under it and a chevron; [last] drops the hairline */
+@Composable
+internal fun SettingsLinkRow(
+    title: String,
+    subtitle: String,
+    iconRes: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+    last: Boolean = false,
+) {
+    Column(modifier = Modifier.background(if (selected) SelectedBubbleColor else Color.Transparent)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Box(
+                modifier = Modifier.size(38.dp).clip(RoundedCornerShape(11.dp)).background(Color(0xFF2C2C2F)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(painter = painterResource(iconRes), contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color.White, maxLines = 1)
+                Text(subtitle, fontFamily = InterFontFamily, fontSize = 13.sp, color = Color(0xFF8E8E93), maxLines = 2)
+            }
+            Icon(
+                painter = painterResource(R.drawable.chevron_right_px),
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.4f),
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        if (!last) {
+            Box(Modifier.fillMaxWidth().padding(start = 68.dp).height(0.5.dp).background(Color.White.copy(alpha = 0.1f)))
+        }
+    }
+}
+
+/** a plain row with a title on the left and its value on the right, nothing to open */
+@Composable
+internal fun SettingsValueRow(title: String, value: String, last: Boolean = false) {
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+        ) {
+            Text(title, fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color.White, modifier = Modifier.weight(1f))
+            Text(value, fontFamily = InterFontFamily, fontSize = 15.sp, color = Color(0xFF8E8E93), maxLines = 1)
+        }
+        if (!last) Box(Modifier.fillMaxWidth().padding(start = 16.dp).height(0.5.dp).background(Color.White.copy(alpha = 0.1f)))
     }
 }
