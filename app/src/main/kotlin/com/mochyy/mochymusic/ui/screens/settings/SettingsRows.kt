@@ -36,13 +36,13 @@ internal fun SettingsSection(title: String?, items: List<SettingsItem>) {
         Text(
             text = title,
             fontFamily = InterFontFamily,
-            fontWeight = FontWeight.Bold,
-            fontSize = 15.sp,
-            color = Color.White,
-            modifier = Modifier.padding(bottom = 10.dp, start = 4.dp),
+            fontWeight = FontWeight.Medium,
+            fontSize = 13.sp,
+            color = Color(0xFF8E8E93),
+            modifier = Modifier.padding(bottom = 8.dp, start = 6.dp),
         )
     }
-    SettingsGroup(style = SettingsGroupStyle.Grouped, items = items)
+    SettingsGroup(style = SettingsGroupStyle.Tiles, items = items)
     Spacer(Modifier.height(18.dp))
 }
 

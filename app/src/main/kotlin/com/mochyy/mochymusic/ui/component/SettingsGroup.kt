@@ -56,6 +56,9 @@ enum class SettingsGroupStyle {
     Classic,
 
     Grouped,
+
+    /** the newer look: dark rounded cards, a dark icon tile, the grey line under every title always shown */
+    Tiles,
 }
 
 @Composable
@@ -73,7 +76,7 @@ fun SettingsGroup(
             Text(
                 text = it,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                color = if (style == SettingsGroupStyle.Tiles) Color(0xFF8E8E93) else MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
             )
         }
@@ -81,6 +84,7 @@ fun SettingsGroup(
         when (style) {
             SettingsGroupStyle.Classic -> ClassicItems(items)
             SettingsGroupStyle.Grouped -> GroupedItems(items)
+            SettingsGroupStyle.Tiles -> GroupedItems(items, SettingsGroupStyle.Tiles)
         }
     }
 }
@@ -136,14 +140,14 @@ private fun clusterItems(items: List<SettingsItem>): List<ItemCluster> {
 }
 
 @Composable
-private fun GroupedItems(items: List<SettingsItem>) {
+private fun GroupedItems(items: List<SettingsItem>, style: SettingsGroupStyle = SettingsGroupStyle.Grouped) {
     val clusters = clusterItems(items)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(if (style == SettingsGroupStyle.Tiles) 22.dp else 28.dp),
         colors = CardDefaults.cardColors(
-            containerColor = com.mochyy.mochymusic.ui.screens.search.SearchColors.Field
+            containerColor = if (style == SettingsGroupStyle.Tiles) Color(0xFF151517) else com.mochyy.mochymusic.ui.screens.search.SearchColors.Field
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -154,7 +158,7 @@ private fun GroupedItems(items: List<SettingsItem>) {
                     enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
                     exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
                 ) {
-                    ClusterRows(cluster)
+                    ClusterRows(cluster, style)
                 }
             }
         }
@@ -162,7 +166,7 @@ private fun GroupedItems(items: List<SettingsItem>) {
 }
 
 @Composable
-private fun ClusterRows(cluster: ItemCluster) {
+private fun ClusterRows(cluster: ItemCluster, style: SettingsGroupStyle) {
     val hasVisibleSubs = cluster.subs.any { it.isVisible }
 
     val pillAlpha by animateFloatAsState(
@@ -187,14 +191,14 @@ private fun ClusterRows(cluster: ItemCluster) {
             .background(pillColor)
     ) {
         Column {
-            SettingsItemRow(item = cluster.parent, style = SettingsGroupStyle.Grouped)
+            SettingsItemRow(item = cluster.parent, style = style)
             cluster.subs.forEach { sub ->
                 AnimatedVisibility(
                     visible = sub.isVisible,
                     enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
                     exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
                 ) {
-                    SettingsItemRow(item = sub, style = SettingsGroupStyle.Grouped)
+                    SettingsItemRow(item = sub, style = style)
                 }
             }
         }
@@ -266,7 +270,7 @@ private fun SettingsItemRow(
 
         item.icon?.let { icon ->
             // a coloured rounded tile with a white glyph when the page picks one, else the plain light circle
-            val tileColor = item.iconTile
+            val tileColor = item.iconTile ?: if (style == SettingsGroupStyle.Tiles) Color(0xFF2C2C2F) else null
             val iconInk = if (tileColor != null) Color.White else Color(0xFF1C1C1E)
             Box(
                 modifier = Modifier
@@ -331,13 +335,14 @@ private fun SettingsItemRow(
             modifier = Modifier.weight(1f)
         ) {
 
-            val titleBaseStyle = if (style == SettingsGroupStyle.Grouped) {
+            val titleBaseStyle = if (style != SettingsGroupStyle.Classic) {
                 MaterialTheme.typography.titleSmall
             } else {
                 MaterialTheme.typography.titleMedium
             }
             val titleColor = when {
                 !item.enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                style == SettingsGroupStyle.Tiles -> Color.White
                 style == SettingsGroupStyle.Grouped -> MaterialTheme.colorScheme.onSurfaceVariant
                 else -> MaterialTheme.colorScheme.onSurface
             }
@@ -351,13 +356,13 @@ private fun SettingsItemRow(
                 MaterialTheme.colorScheme.onSurfaceVariant
             }
 
-            if (item.descriptionText != null && !hideDescriptions) {
+            if (item.descriptionText != null && (!hideDescriptions || style == SettingsGroupStyle.Tiles)) {
                 Spacer(modifier = Modifier.height(1.dp))
                 Text(
                     text = item.descriptionText,
                     style = MaterialTheme.typography.labelMedium,
                     color = descColor,
-                    maxLines = 1,
+                    maxLines = if (style == SettingsGroupStyle.Tiles) 2 else 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             } else if (item.descriptionText == null) {
