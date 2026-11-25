@@ -71,4 +71,6 @@
     <string name="mset_modules_sub">Music sources and add-ons</string>
     <string name="mset_update_sub">Check for a new version</string>
     <string name="mset_version">Build version</string>
+    <string name="mset_telegram">Telegram</string>
+    <string name="mset_telegram_sub">News and chat of the developer</string>
 </resources>

@@ -809,6 +809,14 @@ internal fun SettingsSections(
                     )
                 },
             )
+            val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+            SettingsLinkRow(
+                title = stringResource(R.string.mset_telegram),
+                subtitle = stringResource(R.string.mset_telegram_sub),
+                iconRes = R.drawable.link,
+                selected = false,
+                onClick = { runCatching { uriHandler.openUri("http://t.me/genedevs") } },
+            )
             SettingsValueRow(stringResource(R.string.mset_version), com.mochyy.mochymusic.BuildConfig.VERSION_NAME, last = true)
         }
     }

@@ -75,4 +75,6 @@
     <string name="mset_modules_sub">Источники музыки и дополнения</string>
     <string name="mset_update_sub">Проверить новую версию</string>
     <string name="mset_version">Версия сборки</string>
+    <string name="mset_telegram">Telegram</string>
+    <string name="mset_telegram_sub">Новости и чат разработчика</string>
 </resources>
