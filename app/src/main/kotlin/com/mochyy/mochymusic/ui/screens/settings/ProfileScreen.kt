@@ -128,6 +128,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.mochyy.mochymusic.BuildConfig
+import com.mochyy.mochymusic.ui.screens.devices.showDeviceIntegration
 import com.mochyy.mochymusic.LocalAppContentObscured
 import com.mochyy.mochymusic.LocalDatabase
 import com.mochyy.mochymusic.R
@@ -792,8 +793,20 @@ fun ProfileScreen(navController: NavController) {
                         Spacer(Modifier.height(24.dp))
                         ListeningTimeCard(totalListeningMs, onViewStats = { navController.navigate("stats") })
                         Spacer(Modifier.height(28.dp))
-                        Text(stringResource(R.string.profile_settings_title), style = PageTitle.copy(fontSize = 15.sp), modifier = Modifier.padding(start = 2.dp, bottom = 10.dp))
-                        OpenSettingsRow(onClick = { navController.navigate("mochy_settings") })
+                        // the settings sit right here, so there is no plate to open them
+                        val profileSheets = com.mochyy.mochymusic.ui.component.LocalZoomOutOverlayState.current
+                        val profileDevices = com.mochyy.mochymusic.ui.screens.devices.rememberDevicesLink()
+                        SettingsSections(
+                            navController = navController,
+                            open = { route ->
+                                if (route == com.mochyy.mochymusic.ui.screens.devices.DeviceIntegrationRoute) {
+                                    profileSheets.showDeviceIntegration(profileDevices)
+                                } else {
+                                    navController.navigate(route)
+                                }
+                            },
+                            horizontalPadding = 0.dp,
+                        )
                         Spacer(Modifier.height(bottomClearance()))
                     }
                     },

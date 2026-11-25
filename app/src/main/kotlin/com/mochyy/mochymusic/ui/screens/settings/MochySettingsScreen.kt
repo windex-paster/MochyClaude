@@ -461,67 +461,7 @@ fun MochySettingsScreen(navController: NavController, pane: SettingsPane? = null
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // laid out as in the design: small grey section labels over dark cards, each row a tile, a title and a line under it
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                    ) {
-                        SettingsLabel(stringResource(R.string.mset_section_look))
-                        SettingsGroup {
-                            SettingsLinkRow(stringResource(R.string.settings_customisation_category), stringResource(R.string.mset_customisation_sub), R.drawable.palette, selected == "customisation_settings", { open("customisation_settings") })
-                            SettingsLinkRow(stringResource(R.string.settings_now_playing), stringResource(R.string.mset_now_playing_sub), R.drawable.lyrics, selected == NowPlayingSettingsRoute, { open(NowPlayingSettingsRoute) })
-                            SettingsLinkRow(stringResource(R.string.settings_app_behaviour), stringResource(R.string.mset_behaviour_sub), R.drawable.language, selected == "general_settings", { open("general_settings") }, last = true)
-                        }
-
-                        SettingsLabel(stringResource(R.string.mset_section_audio))
-                        SettingsGroup {
-                            SettingsLinkRow(stringResource(R.string.audio_quality), stringResource(R.string.mset_quality_sub), R.drawable.music_note, selected == "audio_quality", { open("audio_quality") })
-                            SettingsLinkRow(stringResource(R.string.mset_equalizer), stringResource(R.string.mset_equalizer_sub), R.drawable.equalizer, selected == "equalizer", { open("equalizer") })
-                            SettingsLinkRow(stringResource(R.string.settings_playback_category), stringResource(R.string.mset_playback_sub), R.drawable.speed, selected == PlaybackSettingsRoute, { open(PlaybackSettingsRoute) })
-                            SettingsLinkRow(stringResource(R.string.mset_crossfade), stringResource(R.string.mset_crossfade_sub), R.drawable.timer, selected == "crossmix_settings", { open("crossmix_settings") })
-                            SettingsLinkRow(stringResource(R.string.settings_audio_lab_category), stringResource(R.string.mset_audio_lab_sub), R.drawable.tune, selected == "audio_lab", { open("audio_lab") }, last = true)
-                        }
-
-                        SettingsLabel(stringResource(R.string.mset_section_diagnostics))
-                        SettingsGroup {
-                            SettingsLinkRow(stringResource(R.string.mset_diagnostics), stringResource(R.string.mset_diagnostics_sub), R.drawable.bug_report, selected == "playback_diagnostics", { open("playback_diagnostics") }, last = true)
-                        }
-
-                        SettingsLabel(stringResource(R.string.mset_section_storage))
-                        SettingsGroup {
-                            SettingsLinkRow(stringResource(R.string.storage), stringResource(R.string.mset_storage_sub), R.drawable.storage, selected == "storage_settings", { open("storage_settings") }, last = true)
-                        }
-
-                        SettingsLabel(stringResource(R.string.mset_section_services))
-                        SettingsGroup {
-                            SettingsLinkRow(stringResource(R.string.integrations), stringResource(R.string.mset_integrations_sub), R.drawable.integration, selected == IntegrationsRoute, { open(IntegrationsRoute) })
-                            SettingsLinkRow(stringResource(R.string.devices_title), stringResource(R.string.mset_devices_sub), R.drawable.cast_connected, false, { open(com.mochyy.mochymusic.ui.screens.devices.DeviceIntegrationRoute) })
-                            SettingsLinkRow(stringResource(R.string.settings_modules_category), stringResource(R.string.mset_modules_sub), R.drawable.library_add, selected == "modules", { open("modules") }, last = true)
-                        }
-
-                        // pages the modules that are on bring to settings, right under modules
-                        Spacer(Modifier.height(12.dp))
-                        com.mochyy.mochymusic.ui.screens.settings.modules.ModuleSettingsPages(open = open, selected = selected)
-
-                        SettingsLabel(stringResource(R.string.mset_section_about))
-                        // the version sheet checks for a newer release as soon as it opens
-                        SettingsGroup {
-                            SettingsLinkRow(
-                                title = stringResource(R.string.settings_check_update),
-                                subtitle = stringResource(R.string.mset_update_sub),
-                                iconRes = R.drawable.update,
-                                selected = false,
-                                onClick = {
-                                    sheets.showUpdateSheet(
-                                        com.mochyy.mochymusic.core.updater.UpdateState.Checking,
-                                        onOpenDevSpace = { person -> navController.navigate("developer_space?person=$person") },
-                                    )
-                                },
-                            )
-                            SettingsValueRow(stringResource(R.string.mset_version), com.mochyy.mochymusic.BuildConfig.VERSION_NAME, last = true)
-                        }
-                    }
+                    SettingsSections(navController, open, selected)
                 }
             }
 
@@ -799,5 +739,77 @@ internal fun SettingsValueRow(title: String, value: String, last: Boolean = fals
             Text(value, fontFamily = InterFontFamily, fontSize = 15.sp, color = Color(0xFF8E8E93), maxLines = 1)
         }
         if (!last) Box(Modifier.fillMaxWidth().padding(start = 16.dp).height(0.5.dp).background(Color.White.copy(alpha = 0.1f)))
+    }
+}
+
+/** the settings sections (appearance, audio, services, about), used by the settings list and the profile page */
+@Composable
+internal fun SettingsSections(
+    navController: NavController,
+    open: (String) -> Unit,
+    selected: String? = null,
+    horizontalPadding: androidx.compose.ui.unit.Dp = 20.dp,
+) {
+    val sheets = com.mochyy.mochymusic.ui.component.LocalZoomOutOverlayState.current
+                    // laid out as in the design: small grey section labels over dark cards, each row a tile, a title and a line under it
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = horizontalPadding),
+    ) {
+        SettingsLabel(stringResource(R.string.mset_section_look))
+        SettingsGroup {
+            SettingsLinkRow(stringResource(R.string.settings_customisation_category), stringResource(R.string.mset_customisation_sub), R.drawable.palette, selected == "customisation_settings", { open("customisation_settings") })
+            SettingsLinkRow(stringResource(R.string.settings_now_playing), stringResource(R.string.mset_now_playing_sub), R.drawable.lyrics, selected == NowPlayingSettingsRoute, { open(NowPlayingSettingsRoute) })
+            SettingsLinkRow(stringResource(R.string.settings_app_behaviour), stringResource(R.string.mset_behaviour_sub), R.drawable.language, selected == "general_settings", { open("general_settings") }, last = true)
+        }
+
+        SettingsLabel(stringResource(R.string.mset_section_audio))
+        SettingsGroup {
+            SettingsLinkRow(stringResource(R.string.audio_quality), stringResource(R.string.mset_quality_sub), R.drawable.music_note, selected == "audio_quality", { open("audio_quality") })
+            SettingsLinkRow(stringResource(R.string.mset_equalizer), stringResource(R.string.mset_equalizer_sub), R.drawable.equalizer, selected == "equalizer", { open("equalizer") })
+            SettingsLinkRow(stringResource(R.string.settings_playback_category), stringResource(R.string.mset_playback_sub), R.drawable.speed, selected == PlaybackSettingsRoute, { open(PlaybackSettingsRoute) })
+            SettingsLinkRow(stringResource(R.string.mset_crossfade), stringResource(R.string.mset_crossfade_sub), R.drawable.timer, selected == "crossmix_settings", { open("crossmix_settings") })
+            SettingsLinkRow(stringResource(R.string.settings_audio_lab_category), stringResource(R.string.mset_audio_lab_sub), R.drawable.tune, selected == "audio_lab", { open("audio_lab") }, last = true)
+        }
+
+        SettingsLabel(stringResource(R.string.mset_section_diagnostics))
+        SettingsGroup {
+            SettingsLinkRow(stringResource(R.string.mset_diagnostics), stringResource(R.string.mset_diagnostics_sub), R.drawable.bug_report, selected == "playback_diagnostics", { open("playback_diagnostics") }, last = true)
+        }
+
+        SettingsLabel(stringResource(R.string.mset_section_storage))
+        SettingsGroup {
+            SettingsLinkRow(stringResource(R.string.storage), stringResource(R.string.mset_storage_sub), R.drawable.storage, selected == "storage_settings", { open("storage_settings") }, last = true)
+        }
+
+        SettingsLabel(stringResource(R.string.mset_section_services))
+        SettingsGroup {
+            SettingsLinkRow(stringResource(R.string.integrations), stringResource(R.string.mset_integrations_sub), R.drawable.integration, selected == IntegrationsRoute, { open(IntegrationsRoute) })
+            SettingsLinkRow(stringResource(R.string.devices_title), stringResource(R.string.mset_devices_sub), R.drawable.cast_connected, false, { open(com.mochyy.mochymusic.ui.screens.devices.DeviceIntegrationRoute) })
+            SettingsLinkRow(stringResource(R.string.settings_modules_category), stringResource(R.string.mset_modules_sub), R.drawable.library_add, selected == "modules", { open("modules") }, last = true)
+        }
+
+        // pages the modules that are on bring to settings, right under modules
+        Spacer(Modifier.height(12.dp))
+        com.mochyy.mochymusic.ui.screens.settings.modules.ModuleSettingsPages(open = open, selected = selected)
+
+        SettingsLabel(stringResource(R.string.mset_section_about))
+        // the version sheet checks for a newer release as soon as it opens
+        SettingsGroup {
+            SettingsLinkRow(
+                title = stringResource(R.string.settings_check_update),
+                subtitle = stringResource(R.string.mset_update_sub),
+                iconRes = R.drawable.update,
+                selected = false,
+                onClick = {
+                    sheets.showUpdateSheet(
+                        com.mochyy.mochymusic.core.updater.UpdateState.Checking,
+                        onOpenDevSpace = { person -> navController.navigate("developer_space?person=$person") },
+                    )
+                },
+            )
+            SettingsValueRow(stringResource(R.string.mset_version), com.mochyy.mochymusic.BuildConfig.VERSION_NAME, last = true)
+        }
     }
 }

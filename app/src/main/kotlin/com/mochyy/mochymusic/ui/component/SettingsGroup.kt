@@ -67,6 +67,8 @@ fun SettingsGroup(
     items: List<SettingsItem>,
     style: SettingsGroupStyle = SettingsGroupStyle.Classic,
 ) {
+    // every page that asked for the grouped card now gets the new tile look, so the whole settings share one style
+    val look = if (style == SettingsGroupStyle.Grouped) SettingsGroupStyle.Tiles else style
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -76,12 +78,12 @@ fun SettingsGroup(
             Text(
                 text = it,
                 style = MaterialTheme.typography.labelLarge,
-                color = if (style == SettingsGroupStyle.Tiles) Color(0xFF8E8E93) else MaterialTheme.colorScheme.primary,
+                color = if (look == SettingsGroupStyle.Tiles) Color(0xFF8E8E93) else MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
             )
         }
 
-        when (style) {
+        when (look) {
             SettingsGroupStyle.Classic -> ClassicItems(items)
             SettingsGroupStyle.Grouped -> GroupedItems(items)
             SettingsGroupStyle.Tiles -> GroupedItems(items, SettingsGroupStyle.Tiles)
