@@ -178,11 +178,10 @@ internal fun TransitionHeading(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         fontFamily = InterFontFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 17.sp,
-        lineHeight = 22.sp,
-        letterSpacing = (-0.2).sp,
-        color = HeadingColor,
+        fontWeight = FontWeight.Medium,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        color = LabColors.Secondary,
         modifier = modifier.padding(start = 4.dp, end = 16.dp, bottom = 10.dp),
     )
 }
@@ -190,7 +189,7 @@ internal fun TransitionHeading(text: String, modifier: Modifier = Modifier) {
 // the small line under an open card's picture, gone when descriptions are hidden
 @Composable
 private fun CardNote(text: String, hidden: Boolean) {
-    if (hidden) return
+    // the note is part of the design now, so it always shows
     Text(
         text = text,
         fontFamily = InterFontFamily,

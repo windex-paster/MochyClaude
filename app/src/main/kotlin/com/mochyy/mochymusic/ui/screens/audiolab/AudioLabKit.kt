@@ -93,14 +93,14 @@ import kotlinx.coroutines.flow.first
 import com.mochyy.mochymusic.ui.component.RemoteFocus
 
 object LabColors {
-    val Card = Color(0xFF1C1C1E)
+    val Card = Color(0xFF151517)
     val Stage = Color(0xFF0E0E10)
     val StageLine = Color(0xFF2E2E32)
-    val Row = Color(0xFF26262A)
+    val Row = Color(0xFF212124)
     val RowSelected = Color(0xFF34343A)
     val Chip = Color(0xFF232327)
     val Primary = Color.White
-    val Secondary = Color(0xFF9A9AA0)
+    val Secondary = Color(0xFF8E8E93)
     val Faint = Color(0xFF5C5C63)
     val Ink = Color(0xFF8A8A92)
 
@@ -123,7 +123,7 @@ fun LabCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(26.dp))
+            .clip(RoundedCornerShape(22.dp))
             .background(LabColors.Card)
             .padding(padding),
         content = content,
@@ -190,7 +190,8 @@ fun LabToggleRow(
                 fontSize = 15.sp,
                 color = if (enabled) LabColors.Primary else LabColors.Faint,
             )
-            if (subtitle != null && !hideDescriptions) {
+            // the grey line under the title is part of the look, so it shows whatever the descriptions switch says
+            if (subtitle != null) {
                 Text(
                     text = subtitle,
                     fontFamily = InterFontFamily,
