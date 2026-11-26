@@ -91,7 +91,7 @@ fun DislikesScreen(navController: NavController) {
                     Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFF151517)).padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(painterResource(R.drawable.search), null, tint = Color(0xFF8E8E93), modifier = Modifier.size(20.dp))
+                    Icon(painterResource(R.drawable.search_outline), null, tint = Color(0xFF8E8E93), modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(12.dp))
                     Box(Modifier.weight(1f)) {
                         if (query.isEmpty()) Text(stringResource(R.string.dislikes_search), color = Color(0xFF8E8E93), fontSize = 15.sp)
