@@ -77,4 +77,18 @@
     <string name="home_sub_most">What you play the most</string>
     <string name="home_sub_history">Tracks you played lately</string>
     <string name="home_sub_hits">The most popular tracks</string>
+    <string name="dislikes_title">Your music. Your choice.</string>
+    <string name="dislikes_hint">These tracks are left out of recommendations. Take a dislike back from here.</string>
+    <string name="dislikes_search">Find a track or artist</string>
+    <string name="dislikes_all_time">All time</string>
+    <string name="dislikes_today">Today</string>
+    <string name="dislikes_7d">7 days</string>
+    <string name="dislikes_30d">30 days</string>
+    <string name="dislikes_empty">No disliked tracks</string>
+    <string name="dislikes_remove">Undo</string>
+    <string name="dislikes_count">%1$d tracks</string>
+    <string name="dislikes_card">Dislikes</string>
+    <string name="dislike_action">Dislike</string>
+    <string name="dislike_undo">Take dislike back</string>
+    <string name="dislike_added">Left out of recommendations</string>
 </resources>

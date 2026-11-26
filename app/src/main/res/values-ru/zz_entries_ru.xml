@@ -81,4 +81,18 @@
     <string name="home_sub_most">То, что вы включаете чаще всего</string>
     <string name="home_sub_history">Треки, которые вы слушали недавно</string>
     <string name="home_sub_hits">Самые популярные треки</string>
+    <string name="dislikes_title">Ваша музыка. Ваш выбор.</string>
+    <string name="dislikes_hint">Эти треки исключены из рекомендаций. Здесь можно убрать дизлайк.</string>
+    <string name="dislikes_search">Найти трек или исполнителя</string>
+    <string name="dislikes_all_time">За всё время</string>
+    <string name="dislikes_today">Сегодня</string>
+    <string name="dislikes_7d">За 7 дней</string>
+    <string name="dislikes_30d">За 30 дней</string>
+    <string name="dislikes_empty">Нет треков с дизлайком</string>
+    <string name="dislikes_remove">Убрать</string>
+    <string name="dislikes_count">Треков: %1$d</string>
+    <string name="dislikes_card">Дизлайки</string>
+    <string name="dislike_action">Не нравится</string>
+    <string name="dislike_undo">Убрать дизлайк</string>
+    <string name="dislike_added">Трек исключён из рекомендаций</string>
 </resources>

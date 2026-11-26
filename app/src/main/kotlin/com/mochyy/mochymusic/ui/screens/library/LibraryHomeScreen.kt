@@ -407,6 +407,20 @@ private fun LazyListScope.libraryAllTab(
             )
         }
     }
+
+    // the songs marked "don't recommend", always there so the page can be reached
+    item(key = "dislikes") {
+        val dislikeVersion by com.mochyy.mochymusic.utils.NotRecommended.version.collectAsState()
+        val dislikes = remember(dislikeVersion) { com.mochyy.mochymusic.utils.NotRecommended.entries() }
+        Spacer(modifier = Modifier.height(10.dp))
+        LibraryWideCard(
+            title = stringResource(R.string.dislikes_card),
+            count = dislikes.size,
+            covers = dislikes.take(4).mapNotNull { it.thumbnail },
+            onClick = { navController.navigate("dislikes") },
+            modifier = Modifier.padding(horizontal = SearchHorizontalPadding),
+        )
+    }
 }
 
 /**

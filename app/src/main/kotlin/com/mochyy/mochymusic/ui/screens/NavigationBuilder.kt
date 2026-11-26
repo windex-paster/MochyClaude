@@ -259,6 +259,10 @@ fun NavGraphBuilder.navigationBuilder(
         HistoryScreen(navController = navController)
     }
 
+    coverSourceComposable("dislikes") {
+        com.mochyy.mochymusic.ui.screens.library.DislikesScreen(navController = navController)
+    }
+
     composable(
         route = "coming_soon/{sectionTitle}",
         arguments = listOf(

@@ -295,6 +295,30 @@ fun YouTubeSongMenu(
                             com.mochyy.mochymusic.ui.player.share.song.SongShare.open(song.toMediaMetadata())
                         }
                     ),
+                    Material3MenuItemData(
+                        title = {
+                            // follows the page's list, so the words flip as soon as the song is taken back
+                            val dislikeVersion by com.mochyy.mochymusic.utils.NotRecommended.version.collectAsState()
+                            val marked = remember(dislikeVersion) { song.id in com.mochyy.mochymusic.utils.NotRecommended }
+                            Text(text = stringResource(if (marked) R.string.dislike_undo else R.string.dislike_action))
+                        },
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.thumb_down),
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = {
+                            val meta = song.toMediaMetadata()
+                            if (meta.id in com.mochyy.mochymusic.utils.NotRecommended) {
+                                com.mochyy.mochymusic.utils.NotRecommended.remove(meta.id)
+                            } else {
+                                com.mochyy.mochymusic.utils.NotRecommended.add(meta.id, meta.title, meta.artists.joinToString { it.name }, meta.thumbnailUrl)
+                                android.widget.Toast.makeText(context, context.getString(R.string.dislike_added), android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                            onDismiss()
+                        }
+                    ),
                     song.album?.let { album ->
                         Material3MenuItemData(
                             title = { Text(text = stringResource(R.string.view_album)) },

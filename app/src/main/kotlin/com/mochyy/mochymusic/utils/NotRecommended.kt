@@ -28,14 +28,49 @@ object NotRecommended {
 
     operator fun contains(songId: String): Boolean = songId in songs
 
-    @Synchronized
-    fun add(songId: String) = save(songs + songId)
+    /** bumps on every change, so a screen listing the dislikes follows additions and removals */
+    val version = kotlinx.coroutines.flow.MutableStateFlow(0)
+
+    /** what the Dislikes page shows for one song; the title, artist and cover may be missing for old entries */
+    data class Entry(val id: String, val title: String?, val artist: String?, val thumbnail: String?, val at: Long)
+
+    private const val KEY_DETAILS = "details"
 
     @Synchronized
-    fun remove(songId: String) = save(songs - songId)
+    fun add(songId: String, title: String? = null, artist: String? = null, thumbnail: String? = null) {
+        if (title != null) {
+            val all = detailsJson()
+            all.put(songId, org.json.JSONObject().put("t", title).put("a", artist ?: "").put("c", thumbnail ?: "").put("at", System.currentTimeMillis()))
+            prefs.edit { putString(KEY_DETAILS, all.toString()) }
+        }
+        save(songs + songId)
+    }
+
+    @Synchronized
+    fun remove(songId: String) {
+        val all = detailsJson()
+        if (all.has(songId)) {
+            all.remove(songId)
+            prefs.edit { putString(KEY_DETAILS, all.toString()) }
+        }
+        save(songs - songId)
+    }
+
+    /** every disliked song, the newest first; songs added before details were kept come last */
+    fun entries(): List<Entry> {
+        val all = detailsJson()
+        return songs.map { id ->
+            val o = all.optJSONObject(id)
+            Entry(id, o?.optString("t")?.ifEmpty { null }, o?.optString("a")?.ifEmpty { null }, o?.optString("c")?.ifEmpty { null }, o?.optLong("at") ?: 0L)
+        }.sortedByDescending { it.at }
+    }
+
+    private fun detailsJson(): org.json.JSONObject =
+        runCatching { org.json.JSONObject(prefs.getString(KEY_DETAILS, null) ?: "{}") }.getOrDefault(org.json.JSONObject())
 
     private fun save(next: Set<String>) {
         cached = next
         prefs.edit { putStringSet(KEY_SONGS, next) }
+        version.value = version.value + 1
     }
 }

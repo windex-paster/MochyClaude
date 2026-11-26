@@ -653,7 +653,7 @@ class PlayerConnection(
     // the song playing now stops coming back in autoplay, radios and home, and we skip past it right away
     fun stopRecommendingCurrent() {
         val metadata = player.currentMetadata ?: return
-        NotRecommended.add(metadata.id)
+        NotRecommended.add(metadata.id, metadata.title, metadata.artists.joinToString { it.name }, metadata.thumbnailUrl)
         seekToNext()
         TopToaster.show(
             text = context.getString(R.string.not_recommended_done),
