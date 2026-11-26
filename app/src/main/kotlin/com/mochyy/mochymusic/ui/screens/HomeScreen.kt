@@ -1463,6 +1463,7 @@ fun HomeScreen(
                                 homeItem("recently_played_title", revealSeen, "title") {
                                     HomeSectionTitle(
                                         title = stringResource(R.string.recently_played),
+                                        subtitle = stringResource(R.string.home_sub_recent),
                                         onClick = { navController.navigate("section_detail/recently_played") }
                                     )
                                 }
@@ -1476,6 +1477,7 @@ fun HomeScreen(
                                 homeItem("most_played_title", revealSeen, "title") {
                                     HomeSectionTitle(
                                         title = stringResource(R.string.home_most_played),
+                                        subtitle = stringResource(R.string.home_sub_most),
                                         onClick = { navController.navigate("section_detail/most_played") },
                                     )
                                 }
@@ -1496,6 +1498,7 @@ fun HomeScreen(
                                 homeItem("history_title", revealSeen, "title") {
                                     HomeSectionTitle(
                                         title = stringResource(R.string.home_history),
+                                        subtitle = stringResource(R.string.home_sub_history),
                                         onClick = { navController.navigate("history") }
                                     )
                                 }
@@ -1540,6 +1543,7 @@ fun HomeScreen(
                                 homeItem("all_time_hits_title", revealSeen, "title") {
                                     HomeSectionTitle(
                                         title = stringResource(R.string.all_time_hits),
+                                        subtitle = stringResource(R.string.home_sub_hits),
                                         onClick = { navController.navigate("section_detail/all_time_hits") }
                                     )
                                 }

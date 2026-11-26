@@ -137,6 +137,8 @@ fun HomeSectionTitle(
     label: String? = null,
     thumbnail: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
+    /** the small grey line under the title, as in the design */
+    subtitle: String? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -178,11 +180,20 @@ fun HomeSectionTitle(
             }
             Text(
                 text = title,
-                style = HomeLabelStyle,
+                style = if (subtitle != null) HomeLabelStyle.copy(fontSize = 20.sp, lineHeight = 24.sp) else HomeLabelStyle,
                 color = SectionLabelColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = HomeCardSubtitleStyle,
+                    color = Color(0xFF8E8E93),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         if (onClick != null) {
             Spacer(Modifier.width(6.dp))

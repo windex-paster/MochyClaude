@@ -77,4 +77,8 @@
     <string name="mset_version">Версия сборки</string>
     <string name="mset_telegram">Telegram</string>
     <string name="mset_telegram_sub">Новости и чат разработчика</string>
+    <string name="home_sub_recent">Ваша история прослушиваний</string>
+    <string name="home_sub_most">То, что вы включаете чаще всего</string>
+    <string name="home_sub_history">Треки, которые вы слушали недавно</string>
+    <string name="home_sub_hits">Самые популярные треки</string>
 </resources>

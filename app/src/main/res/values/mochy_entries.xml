@@ -73,4 +73,8 @@
     <string name="mset_version">Build version</string>
     <string name="mset_telegram">Telegram</string>
     <string name="mset_telegram_sub">News and chat of the developer</string>
+    <string name="home_sub_recent">Your listening history</string>
+    <string name="home_sub_most">What you play the most</string>
+    <string name="home_sub_history">Tracks you played lately</string>
+    <string name="home_sub_hits">The most popular tracks</string>
 </resources>
