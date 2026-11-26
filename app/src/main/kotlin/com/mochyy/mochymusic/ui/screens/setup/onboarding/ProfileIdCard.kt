@@ -105,6 +105,8 @@ internal fun ProfileIdCard(
     showEditHint: Boolean = false,
     /** true while a finger is down on the card, the whole card lights up a little */
     pressed: () -> Boolean = { false },
+    /** a thin line along the card's bottom edge (the profile page's listening time); gets the card's scale unit */
+    footer: (@Composable (unit: Dp) -> Unit)? = null,
 ) {
     val name = idCardName(username)
     val shape = RoundedCornerShape(22.dp)
@@ -130,7 +132,7 @@ internal fun ProfileIdCard(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .padding(start = unit * 22f, top = unit * 20f, end = unit * 12f, bottom = unit * 18f),
+                    .padding(start = unit * 22f, top = unit * 18f, end = unit * 12f, bottom = if (footer != null) unit * 9f else unit * 18f),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -211,6 +213,9 @@ internal fun ProfileIdCard(
                     }
                 }
                 Spacer(Modifier.weight(1f))
+                if (footer != null) {
+                    Box(Modifier.fillMaxWidth().graphicsLayer { alpha = partsAlpha() }) { footer(unit) }
+                }
             }
             MarqueeStrip(
                 text = stringResource(R.string.onb_card_of_name, name),

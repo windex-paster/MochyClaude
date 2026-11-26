@@ -664,6 +664,9 @@ fun ProfileScreen(navController: NavController) {
                                     marqueeRunning = { !profile.holdsPage },
                                     showEditHint = true,
                                     pressed = { cardPressed && stage == HeaderStage.Collapsed },
+                                    footer = { unit ->
+                                        CardListeningLine(totalListeningMs, unit) { navController.navigate("stats") }
+                                    },
                                 )
                             } else {
                                 val range = (recap as? RecapAvailability.Ready)?.stats?.range
@@ -790,8 +793,7 @@ fun ProfileScreen(navController: NavController) {
                                 modifier = Modifier.graphicsLayer { alpha = 1f - collapseProgress },
                             )
                         }
-                        Spacer(Modifier.height(6.dp))
-                        ListeningTimeCard(totalListeningMs, onViewStats = { navController.navigate("stats") })
+                        // the listening time now sits on the ID card itself
                         Spacer(Modifier.height(28.dp))
                         // the settings sit right here, so there is no plate to open them
                         val profileSheets = com.mochyy.mochymusic.ui.component.LocalZoomOutOverlayState.current
@@ -1279,5 +1281,33 @@ private fun OpenSettingsRow(onClick: () -> Unit) {
             Icon(painterResource(R.drawable.settings), contentDescription = null, tint = Color(0xFF232323), modifier = Modifier.size(18.dp))
         }
         Text(stringResource(R.string.profile_open_settings), style = PageTitle.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold))
+    }
+}
+
+
+/** "9h 5m  Total listening time" and "View Stats >" in one line along the bottom of the ID card; [unit] is the card's scale */
+@Composable
+private fun CardListeningLine(totalMs: Long, unit: androidx.compose.ui.unit.Dp, onViewStats: () -> Unit) {
+    val totalMinutes = (totalMs / 60_000L).coerceAtLeast(0L)
+    val text = "${totalMinutes / 60}${stringResource(R.string.profile_unit_hour_short)} ${totalMinutes % 60}${stringResource(R.string.profile_unit_minute_short)}"
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = text,
+            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Bold, fontSize = (unit.value * 12f).sp, color = Color.White),
+        )
+        Spacer(Modifier.width(unit * 6f))
+        Text(
+            text = stringResource(R.string.profile_total_listening_time),
+            style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = (unit.value * 8.5f).sp, color = Color(0xFFB5B5B5)),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = stringResource(R.string.profile_view_stats),
+            style = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = (unit.value * 9.5f).sp, color = Color(0xFFB5B5B5)),
+            maxLines = 1,
+            modifier = Modifier.clickable(onClick = onViewStats).padding(start = unit * 6f),
+        )
     }
 }

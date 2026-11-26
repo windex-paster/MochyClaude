@@ -272,7 +272,8 @@ private fun SettingsItemRow(
 
         item.icon?.let { icon ->
             // a coloured rounded tile with a white glyph when the page picks one, else the plain light circle
-            val tileColor = item.iconTile ?: if (style == SettingsGroupStyle.Tiles) Color(0xFF2C2C2F) else null
+            // the new look has one dark tile for every row, whatever colour the page asked for
+            val tileColor = if (style == SettingsGroupStyle.Tiles) Color(0xFF2C2C2F) else item.iconTile
             val iconInk = if (tileColor != null) Color.White else Color(0xFF1C1C1E)
             Box(
                 modifier = Modifier
