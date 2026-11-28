@@ -48,6 +48,7 @@ import com.mochyy.mochymusic.di.DownloadCache
 import com.mochyy.mochymusic.ui.utils.resize
 import com.mochyy.mochymusic.utils.YTPlayerUtils
 import com.mochyy.mochymusic.utils.enumPreference
+import com.mochyy.mochymusic.utils.youtubeIdOrNull
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -124,19 +125,21 @@ constructor(
     // stream was two files glued together: the song played for a few seconds, then went silent.
     private val dataSourceFactory =
         ResolvingDataSource.Factory(
-            OkHttpDataSource.Factory(
-                com.mochyy.mochymusic.utils.AppProxy.sharedClient.newBuilder()
-                    .dns(object : Dns {
-                        override fun lookup(hostname: String): List<InetAddress> {
-                            val addresses = Dns.SYSTEM.lookup(hostname)
-                            return when (this@DownloadUtil.ipVersion) {
-                                IpVersion.IPV4 -> addresses.filter { it is Inet4Address }.ifEmpty { addresses }
-                                IpVersion.IPV6 -> addresses.filter { it is Inet6Address }.ifEmpty { addresses }
-                                IpVersion.AUTO -> addresses
+            com.mochyy.mochymusic.link.LanHttpDataSource.Factory(
+                OkHttpDataSource.Factory(
+                    com.mochyy.mochymusic.utils.AppProxy.sharedClient.newBuilder()
+                        .dns(object : Dns {
+                            override fun lookup(hostname: String): List<InetAddress> {
+                                val addresses = Dns.SYSTEM.lookup(hostname)
+                                return when (this@DownloadUtil.ipVersion) {
+                                    IpVersion.IPV4 -> addresses.filter { it is Inet4Address }.ifEmpty { addresses }
+                                    IpVersion.IPV6 -> addresses.filter { it is Inet6Address }.ifEmpty { addresses }
+                                    IpVersion.AUTO -> addresses
+                                }
                             }
-                        }
-                    })
-                    .build(),
+                        })
+                        .build(),
+                ),
             ),
         ) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
@@ -369,6 +372,7 @@ constructor(
                 artists = known.artists.map { it.name },
                 album = known.song.albumName ?: known.album?.title,
                 durationMs = known.song.duration.takeIf { it > 0 }?.times(1000L),
+                videoId = youtubeIdOrNull(mediaId),
             )
             val route = runBlocking(Dispatchers.IO) { sourceModules.downloadRoute(track, failedProviders[mediaId].orEmpty()) }
             val found = route as? SourceModules.Route.Module ?: return null

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- mixer entry card on audio fx -->
+    <string name="mixer_card_title">Sound Mixer</string>
+    <string name="mixer_open">Open</string>
+    <plurals name="mixer_effect_count">
+        <item quantity="one">%d effect</item>
+        <item quantity="other">%d effects</item>
+    </plurals>
+
+    <!-- mixer page -->
+    <string name="mixer_back_audio_fx">Audio FX</string>
+    <string name="mixer_switch">Sound Mixer</string>
+    <string name="mixer_mixes">Presets</string>
+    <string name="mixer_save_mix">Save</string>
+    <string name="mixer_save_mix_hint">Preset name</string>
+    <string name="mixer_reset_mix">Reset</string>
+    <string name="mixer_delete_mix">Delete</string>
+    <string name="mixer_rename_mix">Rename</string>
+    <string name="mixer_buses">Channels</string>
+    <string name="mixer_add_bus">New</string>
+    <string name="mixer_bus_name">Channel %1$d</string>
+    <string name="mixer_master">Master</string>
+    <string name="mixer_mute">M</string>
+    <string name="mixer_solo">S</string>
+    <string name="mixer_mute_label">Mute</string>
+    <string name="mixer_solo_label">Solo</string>
+    <string name="mixer_takes_song">Input</string>
+    <string name="mixer_strip_fx">FX</string>
+    <string name="mixer_strip_fx_count">%1$d FX</string>
+    <string name="mixer_fader_label">%1$s level</string>
+    <string name="mixer_pan_label">%1$s pan</string>
+    <string name="mixer_clip">Clip</string>
+    <string name="mixer_db">%1$s dB</string>
+
+    <!-- loudness -->
+    <string name="mixer_loudness">Loudness</string>
+    <string name="mixer_lufs_momentary">Momentary</string>
+    <string name="mixer_lufs_short">Short</string>
+    <string name="mixer_lufs_integrated">Integrated</string>
+    <string name="mixer_lufs_range">Range</string>
+    <string name="mixer_true_peak">True peak</string>
+    <string name="mixer_loudness_reset">Reset</string>
+
+    <!-- sends -->
+    <string name="mixer_routing">Sends</string>
+    <string name="mixer_send_to">To %1$s</string>
+
+    <!-- channel / effects chain page -->
+    <string name="mixer_bus_title">Effects</string>
+    <string name="mixer_bus_settings">Channel</string>
+    <string name="mixer_bus_input">Song input</string>
+    <string name="mixer_bus_focus">Focus</string>
+    <string name="mixer_focus_all">Full mix</string>
+    <string name="mixer_focus_mid">Center (Mid)</string>
+    <string name="mixer_focus_side">Sides</string>
+    <string name="mixer_focus_left">Left</string>
+    <string name="mixer_focus_right">Right</string>
+    <string name="mixer_focus_centre">Center channel</string>
+    <string name="mixer_focus_lfe">Subwoofer</string>
+    <string name="mixer_focus_rear">Rear</string>
+    <string name="mixer_focus_surround">Surrounds</string>
+    <string name="mixer_focus_top_front">Top front</string>
+    <string name="mixer_focus_top_rear">Top rear</string>
+    <string name="mixer_bus_name_hint">Rename</string>
+    <string name="mixer_bus_colour">Color</string>
+    <string name="mixer_remove_bus">Remove</string>
+    <string name="mixer_effects">Effects</string>
+    <string name="mixer_no_effects">No effects</string>
+    <string name="mixer_add_effect">Add effect</string>
+    <string name="mixer_effects_full">Effect limit reached</string>
+
+    <!-- effect slot -->
+    <string name="mixer_move_up">Move up</string>
+    <string name="mixer_move_down">Move down</string>
+    <string name="mixer_remove_effect">Remove</string>
+    <string name="mixer_slot_missing">Missing effect</string>
+    <string name="mixer_slot_missing_body">Module off or removed</string>
+    <string name="mixer_decay_whole">Decay</string>
+    <string name="mixer_decay_bass">Bass</string>
+    <string name="mixer_decay_treble">Treble</string>
+    <string name="mixer_decay_long">long</string>
+    <string name="mixer_problem_compile">Compile error: %1$s</string>
+    <string name="mixer_problem_slow">Paused (CPU limit)</string>
+    <string name="mixer_problem_numbers">Muted invalid output</string>
+    <string name="mixer_problem_no_sample">Missing @sample section</string>
+    <string name="mixer_problem_memory">Out of memory</string>
+    <string name="mixer_problem_other">Effect failed to start</string>
+    <string name="mixer_problem_resume">Resume</string>
+    <string name="mixer_edit_script">Edit script</string>
+    <string name="mixer_console_show">Console</string>
+    <string name="mixer_console_hide">Hide console</string>
+    <string name="mixer_console_empty">No output</string>
+
+    <!-- add effect sheet -->
+    <string name="mixer_add_title">Add effect</string>
+    <string name="mixer_add_scripts">Scripts</string>
+    <string name="mixer_new_script">New script</string>
+    <string name="mixer_open_script">Import .eel file</string>
+    <string name="mixer_from_module">%1$s</string>
+    <string name="mixer_script_unreadable">Couldn\'t open .eel file</string>
+
+    <!-- script editor -->
+    <string name="liveprog_page_title">Script editor</string>
+    <string name="liveprog_name_hint">Script name</string>
+    <string name="liveprog_check">Check</string>
+    <string name="liveprog_apply">Apply</string>
+    <string name="liveprog_builds">OK</string>
+    <string name="liveprog_save_file">Export</string>
+    <string name="liveprog_saved">Saved</string>
+    <string name="liveprog_no_knobs">No knobs</string>
+    <plurals name="liveprog_knobs_found">
+        <item quantity="one">%d knob</item>
+        <item quantity="other">%d knobs</item>
+    </plurals>
+    <string name="liveprog_unsaved">Unsaved</string>
+</resources>

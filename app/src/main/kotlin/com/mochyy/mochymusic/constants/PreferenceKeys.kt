@@ -214,6 +214,8 @@ val HiFiResamplerKey = booleanPreferencesKey("hiFiResampler")
 val AudioPassModeKey = stringPreferencesKey("audioPassMode")
 // lets the direct usb driver play a dac that has no volume of its own, at full scale
 val AudioPassFixedVolumeKey = booleanPreferencesKey("audioPassFixedVolume")
+// the direct usb driver's way to the dac: MOCHY (its own usbdevfs calls) or LIBUSB
+val UsbDriverKey = stringPreferencesKey("usbDriver")
 // what "turn these off" on dac's stuff switched off, as json, until "turn these back on" puts it back
 val AudioPassRestoreKey = stringPreferencesKey("audioPassRestore")
 
@@ -1430,3 +1432,8 @@ val ModuleStoreTermsKey = intPreferencesKey("moduleStoreTerms")
 
 // experimental: the module store answers as it would a fork, to see that page without building one
 val SimulateForkKey = booleanPreferencesKey("simulateFork")
+
+val AppFontModeKey = stringPreferencesKey("appFontMode")
+val CustomFontIdKey = stringPreferencesKey("customFontId")
+val CustomFontNameKey = stringPreferencesKey("customFontName")
+val FontCustomizerConfigKey = stringPreferencesKey("fontCustomizerConfig")

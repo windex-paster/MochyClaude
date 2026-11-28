@@ -539,12 +539,14 @@ internal fun MenuRow(
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val contentAlpha = if (enabled) 1f else 0.35f
+    val rowBg = resolvedSheetRowSurface()
+    val rowCorner = resolvedSheetRowCorner()
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(menuRowSurface())
+            .clip(RoundedCornerShape(rowCorner))
+            .background(if (LocalMenuSheetGlass.current) menuRowSurface() else rowBg)
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },

@@ -553,6 +553,18 @@ fun NavGraphBuilder.navigationBuilder(
         com.mochyy.mochymusic.ui.screens.audiolab.stage.StageScreen(navController = navController)
     }
 
+    composable("audio_mixer") {
+        com.mochyy.mochymusic.ui.screens.audiolab.mixer.MixerScreen(navController = navController)
+    }
+
+    composable("audio_mixer_bus/{id}", arguments = listOf(navArgument("id") { type = NavType.IntType })) { entry ->
+        com.mochyy.mochymusic.ui.screens.audiolab.mixer.BusScreen(navController = navController, busId = entry.arguments?.getInt("id") ?: 0)
+    }
+
+    composable("audio_liveprog/{uid}", arguments = listOf(navArgument("uid") { type = NavType.LongType })) { entry ->
+        com.mochyy.mochymusic.ui.screens.audiolab.mixer.LiveprogEditorScreen(navController = navController, uid = entry.arguments?.getLong("uid") ?: 0L)
+    }
+
     composable("audio_quality") {
         com.mochyy.mochymusic.ui.screens.audiolab.AudioQualityScreen(navController = navController)
     }
@@ -782,10 +794,14 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     composable(
-        route = "local_playlist/{playlistId}",
+        route = "local_playlist/{playlistId}?mixIt={mixIt}",
         arguments = listOf(
             navArgument("playlistId") {
                 type = NavType.StringType
+            },
+            navArgument("mixIt") {
+                type = NavType.BoolType
+                defaultValue = false
             },
         ),
         enterTransition = { fadeIn(tween(300)) },

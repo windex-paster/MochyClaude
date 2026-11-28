@@ -16,7 +16,10 @@ internal object DiscordHttp {
     const val Api = "https://discord.com/api/v10"
 
     val client: OkHttpClient by lazy {
-        OkHttpClient.Builder().followAppProxy()
+        OkHttpClient.Builder()
+            .followAppProxy()
+            .followRedirects(false)
+            .followSslRedirects(false)
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .writeTimeout(20, TimeUnit.SECONDS)

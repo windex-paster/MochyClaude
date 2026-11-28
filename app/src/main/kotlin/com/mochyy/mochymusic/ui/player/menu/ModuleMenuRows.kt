@@ -31,13 +31,19 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.mochyy.mochymusic.R
 import com.mochyy.mochymusic.models.MediaMetadata
+import com.mochyy.mochymusic.modules.security.ModuleActionGuard
+import com.mochyy.mochymusic.modules.security.SafeModuleRoutes
 import com.mochyy.mochymusic.modules.skin.ActionTarget
 import com.mochyy.mochymusic.modules.skin.ActiveSkin
+import com.mochyy.mochymusic.modules.skin.ButtonKind
 import com.mochyy.mochymusic.modules.skin.ModuleMenu
+import com.mochyy.mochymusic.modules.skin.SheetKind
+import com.mochyy.mochymusic.ui.component.LocalMenuState
 import com.mochyy.mochymusic.ui.component.RemoteFocus
 import com.mochyy.mochymusic.ui.component.SheetIcon
 import com.mochyy.mochymusic.ui.screens.search.searchRoute
 import com.mochyy.mochymusic.ui.screens.settings.devspace.openDevUrl
+import com.mochyy.mochymusic.ui.screens.settings.modules.ModulePageSheetContent
 import com.mochyy.mochymusic.ui.screens.settings.modules.modulePageRoute
 import java.net.URLEncoder
 
@@ -48,6 +54,7 @@ internal fun ModuleMenuRows(song: MediaMetadata?, onDismiss: () -> Unit, onOpenR
     val customise = ActiveSkin.style?.takeIf { it.player.customise != null && onCustomise != null }
     if (actions.isEmpty() && customise == null) return
     val context = LocalContext.current
+    val menuState = LocalMenuState.current
     Spacer(Modifier.height(16.dp))
     if (customise != null && onCustomise != null) {
         val name = customise.title
@@ -60,17 +67,55 @@ internal fun ModuleMenuRows(song: MediaMetadata?, onDismiss: () -> Unit, onOpenR
         ModuleMenuRow(item.action.title, item.skin.resolve(item.action.icon), enabled) {
             val now = song ?: return@ModuleMenuRow
             onDismiss()
-            openModuleTarget(context, item.action.target, now, item.moduleId) { route -> onOpenRoute?.invoke(route) }
+            openModuleTarget(
+                context, item.action.target, now, item.moduleId,
+                openRoute = { route -> onOpenRoute?.invoke(route) },
+                // a module page in a sheet opens here too, once this menu is on its way out; a module sheet opens over the player by itself
+                onOpenSheet = { kind, pageId ->
+                    if (kind == SheetKind.ModulePage && pageId != null) {
+                        menuState.show {
+                            ModulePageSheetContent(
+                                moduleId = item.moduleId,
+                                pageId = pageId,
+                                onNavigateRoute = { route ->
+                                    menuState.dismissAll()
+                                    onOpenRoute?.invoke(route)
+                                },
+                                onDismiss = { menuState.dismiss() },
+                            )
+                        }
+                    }
+                },
+            )
         }
     }
 }
 
-/** runs a module's link, page or search with the song filled in; pages and searches go through [openRoute] */
-internal fun openModuleTarget(context: Context, target: ActionTarget, song: MediaMetadata?, moduleId: String, openRoute: (String) -> Unit) {
+/** runs a module's link, page, search, sheet, safe route, control or setting action with sandbox & secret guards */
+internal fun openModuleTarget(
+    context: Context,
+    target: ActionTarget,
+    song: MediaMetadata?,
+    moduleId: String,
+    openRoute: (String) -> Unit,
+    onOpenSheet: ((SheetKind, String?) -> Unit)? = null,
+    onControl: ((ButtonKind) -> Unit)? = null,
+    onSetField: ((key: String, value: String?) -> Unit)? = null,
+    onSetAppSetting: ((key: String, value: String?) -> Unit)? = null,
+) {
     when (target) {
-        is ActionTarget.Link -> context.openDevUrl(fill(target.template, song, encode = true))
+        is ActionTarget.Link -> {
+            val url = fill(target.template, song, encode = true)
+            if (ModuleActionGuard.isSafeFinalUrl(url)) context.openDevUrl(url)
+        }
         is ActionTarget.Page -> openRoute(modulePageRoute(moduleId, target.id))
         is ActionTarget.Search -> openRoute(searchRoute(fill(target.template, song, encode = false)))
+        is ActionTarget.Sheet -> onOpenSheet?.invoke(target.kind, target.pageId)
+        is ActionTarget.Route -> SafeModuleRoutes.sanitize(target.route)?.let(openRoute)
+        is ActionTarget.Control -> onControl?.invoke(target.kind)
+        is ActionTarget.SetField -> onSetField?.invoke(target.key, target.value)
+        is ActionTarget.SetAppSetting -> onSetAppSetting?.invoke(target.key, target.value)
+        is ActionTarget.ModuleSheet -> com.mochyy.mochymusic.ui.player.styles.ModuleSheets.open(moduleId, target.id)
     }
 }
 
@@ -78,12 +123,14 @@ internal fun openModuleTarget(context: Context, target: ActionTarget, song: Medi
 @Composable
 private fun ModuleMenuRow(title: String, picture: Any?, enabled: Boolean, onClick: () -> Unit) {
     val alpha = if (enabled) 1f else 0.35f
+    val rowBg = resolvedSheetRowSurface()
+    val rowCorner = resolvedSheetRowCorner()
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(menuRowSurface())
+            .clip(RoundedCornerShape(rowCorner))
+            .background(if (LocalMenuSheetGlass.current) menuRowSurface() else rowBg)
             .clickable(enabled = enabled, interactionSource = remember { MutableInteractionSource() }, indication = RemoteFocus, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 14.dp),
     ) {

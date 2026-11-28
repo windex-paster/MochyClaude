@@ -634,7 +634,14 @@ fun HomeScreen(
                             .map { it.song.toMediaItem() }
                         if (songs.isEmpty()) return@launch
                         withContext(Dispatchers.Main) {
-                            playerConnection.playQueue(ListQueue(title = playlist.playlist.name, items = songs))
+                            playerConnection.playQueue(
+                                ListQueue(
+                                    title = playlist.playlist.name,
+                                    items = songs,
+                                    playlistId = playlist.id,
+                                    disableShuffle = playlist.playlist.mixItEnabled,
+                                )
+                            )
                         }
                     }
                 }
@@ -1019,7 +1026,7 @@ fun HomeScreen(
                 onClick = {
                     when (item) {
                         is SongItem -> playerConnection.playQueue(
-                            YouTubeQueue(item.endpoint ?: WatchEndpoint(videoId = item.id), item.toMediaMetadata())
+                            YouTubeQueue.forSong(item.endpoint, item.toMediaMetadata())
                         )
                         is AlbumItem -> navController.navigate("album/${item.id}")
                         is ArtistItem -> navController.navigate("artist/${item.id}")
@@ -1055,10 +1062,7 @@ fun HomeScreen(
                         playerConnection.togglePlayPause()
                     } else {
                         playerConnection.playQueue(
-                            YouTubeQueue(
-                                video.item.endpoint ?: WatchEndpoint(videoId = video.item.id),
-                                video.item.toMediaMetadata()
-                            )
+                            YouTubeQueue.forSong(video.item.endpoint, video.item.toMediaMetadata())
                         )
                     }
                 },
@@ -1097,10 +1101,7 @@ fun HomeScreen(
             onItemClick = { item ->
                 when (item) {
                     is SongItem -> playerConnection.playQueue(
-                        YouTubeQueue(
-                            item.endpoint ?: WatchEndpoint(videoId = item.id),
-                            item.toMediaMetadata()
-                        )
+                        YouTubeQueue.forSong(item.endpoint, item.toMediaMetadata())
                     )
                     is AlbumItem -> navController.navigate("album/${item.id}")
                     is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
@@ -1119,10 +1120,7 @@ fun HomeScreen(
                     onClick = {
                         when (item) {
                             is SongItem -> playerConnection.playQueue(
-                                YouTubeQueue(
-                                    item.endpoint ?: WatchEndpoint(videoId = item.id),
-                                    item.toMediaMetadata()
-                                )
+                                YouTubeQueue.forSong(item.endpoint, item.toMediaMetadata())
                             )
                             is AlbumItem -> navController.navigate("album/${item.id}")
                             is ArtistItem -> navController.navigate("artist/${item.id}")

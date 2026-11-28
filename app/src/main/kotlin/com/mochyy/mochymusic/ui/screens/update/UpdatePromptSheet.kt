@@ -101,9 +101,10 @@ fun UpdatePromptSheet(
     ) { _ ->
         Column(
             modifier = Modifier
+                // keep the scroll viewport above the navigation bar so bottom actions never sit behind it
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(top = sheetHandleRoom())
-                .navigationBarsPadding()
                 .padding(horizontal = 24.dp)
                 .padding(top = 12.dp, bottom = 24.dp)
                 .animateContentSize()
@@ -306,6 +307,7 @@ private fun PromptButton(
 }
 
 private fun android.content.Context.openReleaseUrl(url: String) {
+    if (!com.mochyy.mochymusic.core.updater.ApkVerifier.isSafeExternalWebUrl(url)) return
     runCatching {
         startActivity(
             android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))

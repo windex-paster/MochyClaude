@@ -19,6 +19,7 @@ import com.mochyy.mochymusic.constants.AccountChannelHandleKey
 import com.mochyy.mochymusic.constants.AccountEmailKey
 import com.mochyy.mochymusic.constants.AccountNameKey
 import com.mochyy.mochymusic.constants.DataSyncIdKey
+import com.mochyy.mochymusic.constants.DeeplApiKey
 import com.mochyy.mochymusic.constants.DiscordAccessTokenKey
 import com.mochyy.mochymusic.constants.DiscordLoginStateKey
 import com.mochyy.mochymusic.constants.DiscordLoginVerifierKey
@@ -34,6 +35,11 @@ import com.mochyy.mochymusic.constants.LastFMUsernameKey
 import com.mochyy.mochymusic.constants.LibreFmSessionKey
 import com.mochyy.mochymusic.constants.LibreFmUsernameKey
 import com.mochyy.mochymusic.constants.MonochromePlaybackApiTokenKey
+import com.mochyy.mochymusic.constants.MonochromeTurnstileJwtExpiryKey
+import com.mochyy.mochymusic.constants.MonochromeTurnstileJwtKey
+import com.mochyy.mochymusic.constants.OpenRouterApiKey
+import com.mochyy.mochymusic.constants.ProxyPasswordKey
+import com.mochyy.mochymusic.constants.ProxyUsernameKey
 import com.mochyy.mochymusic.constants.TurnstileBypassTokenKey
 import com.mochyy.mochymusic.constants.VisitorDataKey
 import com.mochyy.mochymusic.playback.StoredKind
@@ -58,8 +64,7 @@ internal object TransferArchive {
     // media3's own database, it holds the list of downloads and the index of the download folder
     const val MediaDatabaseName = "exoplayer_internal.db"
 
-    // the app's own shared preferences worth keeping (audio lab, eq profiles, the home algorithm, hidden songs, source picks, ui scale),
-    // by the name they travel under in the zip and the file name on this phone, so a renamed file still lands in the right place
+    // every shared preferences file of the app's own worth keeping, by its name in the zip and on this phone; logins, tv pairings, module storage and caches stay behind
     val PrefsToCarry = mapOf(
         "audio_lab" to "audio_lab",
         "nanosonic_eq_profiles" to "nanosonic_eq_profiles",
@@ -67,23 +72,32 @@ internal object TransferArchive {
         "not_recommended" to com.mochyy.mochymusic.utils.NotRecommended.PREFS_NAME,
         "source_modules" to "source_modules",
         "display" to "mochy_settings",
+        "mixer" to "mixer",
+        "song_eq" to "song_eq",
+        "song_tuning" to "song_tuning",
+        "recent_searches" to "recent_searches",
+        "playlist_added_here" to "playlist_added_here",
+        "module_looks" to "module_looks",
+        "app_icon" to "app_icon",
+        "updates" to com.mochyy.mochymusic.core.updater.PREFS_NAME,
     )
 
-    // sign-ins and tokens stay behind, the new app signs in again instead of carrying them around in a zip
+    // creds and api keys never ride along in a backup zip
     val LoginKeys: Set<String> = setOf(
         InnerTubeCookieKey, VisitorDataKey, DataSyncIdKey, AccountNameKey, AccountEmailKey, AccountChannelHandleKey,
         DiscordAccessTokenKey, DiscordRefreshTokenKey, DiscordTokenExpiresAtKey, DiscordLoginStateKey,
         DiscordLoginVerifierKey, DiscordProfileKey, EnableDiscordRPCKey,
         LastFMSessionKey, LastFMUsernameKey, EnableLastFMScrobblingKey,
         LibreFmSessionKey, LibreFmUsernameKey, EnableLibreFmScrobblingKey,
-        MonochromePlaybackApiTokenKey, TurnstileBypassTokenKey,
+        MonochromePlaybackApiTokenKey, MonochromeTurnstileJwtKey, MonochromeTurnstileJwtExpiryKey, TurnstileBypassTokenKey,
+        OpenRouterApiKey, DeeplApiKey, ProxyUsernameKey, ProxyPasswordKey,
     ).map { it.name }.toSet()
 
-    // top-level things in the files folder that stay behind: the streaming cache, settings (sent as json),
-    // caches, crash notes, the saved queue (java objects tied to class names) and folder picks android won't hand over
+    // what stays behind in the files folder: the streaming cache, settings (sent as json), caches, crash notes, the saved queue, folder picks android won't hand over, and code modules, which only run signed with this app's own key
     private val FilesLeftBehind = setOf(
         "exoplayer", "datastore", "cipher_cache", "local_music_folders.txt", "last_crash.txt",
         "persistent_queue.data", "persistent_automix.data", "persistent_player_state.data",
+        "code_modules",
     )
 
     // top-level folders in the files folder that hold songs: downloads and songs shared into mochy; a backup leaves them out to stay small
@@ -181,7 +195,10 @@ internal object TransferArchive {
 
 /** turns a copied wal-mode database into one plain file, so it can be zipped or moved on its own without losing the newest changes */
 internal fun foldIntoOneFile(db: SQLiteDatabase) {
-    val mode = db.rawQuery("PRAGMA journal_mode=DELETE", null).use { if (it.moveToFirst()) it.getString(0) else null }
+    runCatching { db.disableWriteAheadLogging() }
+    val mode = runCatching {
+        db.rawQuery("PRAGMA journal_mode=DELETE", null).use { if (it.moveToFirst()) it.getString(0) else null }
+    }.getOrNull()
     if (mode.equals("delete", ignoreCase = true)) return
     // android kept it in wal mode, so push everything from the wal into the main file instead
     db.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)", null).use { cursor ->
@@ -189,15 +206,40 @@ internal fun foldIntoOneFile(db: SQLiteDatabase) {
     }
 }
 
-// copies a live database while holding its write lock, so nothing lands halfway, then folds its wal into one plain file
-internal fun snapshotDatabase(source: File, target: File, begin: () -> Unit, end: () -> Unit) {
-    val targetWal = File(target.path + "-wal")
+// copies a live database into one compacted, self-contained file; uses atomic VACUUM INTO when available and falls back to lock+copy on older SQLite
+internal fun snapshotDatabase(
+    source: File,
+    target: File,
+    begin: () -> Unit,
+    end: () -> Unit,
+    vacuumInto: ((String) -> Unit)? = null,
+    checkpoint: (() -> Unit)? = null,
+) {
+    fun cleanSidecars() = listOf("-wal", "-shm", "-journal").forEach { File(target.path + it).delete() }
     target.delete()
-    targetWal.delete()
+    cleanSidecars()
+
+    // SQLite 3.27+ (Android 11+): atomic, consistent, compacted single-file snapshot with zero write-lock stall
+    if (vacuumInto != null) {
+        val ok = runCatching {
+            vacuumInto(target.path)
+            target.exists() && target.length() > 0L
+        }.getOrDefault(false)
+        if (ok) {
+            cleanSidecars()
+            return
+        }
+        target.delete()
+        cleanSidecars()
+    }
+
+    // Flush WAL into the main file before copying so older Android/SQLite versions have minimal WAL to replay
+    runCatching { checkpoint?.invoke() }
+    val targetWal = File(target.path + "-wal")
     begin()
     try {
         source.copyTo(target, overwrite = true)
-        File(source.path + "-wal").takeIf { it.exists() }?.copyTo(targetWal, overwrite = true)
+        File(source.path + "-wal").takeIf { it.exists() && it.length() > 0L }?.copyTo(targetWal, overwrite = true)
     } finally {
         end()
     }
@@ -207,7 +249,7 @@ internal fun snapshotDatabase(source: File, target: File, begin: () -> Unit, end
             check(cursor.moveToFirst() && cursor.getString(0).equals("ok", ignoreCase = true)) { "snapshot of ${source.name} failed its check" }
         }
     }
-    listOf("-wal", "-shm", "-journal").forEach { File(target.path + it).delete() }
+    cleanSidecars()
 }
 
 /** what the manifest says about a zip, enough to check it and to tell the user what's inside */

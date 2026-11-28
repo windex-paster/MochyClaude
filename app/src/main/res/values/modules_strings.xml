@@ -4,6 +4,7 @@
     <string name="module_adds_songs">Songs</string>
     <string name="module_adds_lyrics">Lyrics</string>
     <string name="module_adds_look">Look</string>
+    <string name="module_adds_audio">Audio effects</string>
     <string name="module_adds_metadata">Song info</string>
     <string name="modules_beta">BETA</string>
     <string name="module_status_signed_out">Not signed in</string>
@@ -19,6 +20,7 @@
     <string name="modules_third_party_docs">See the documentation</string>
     <string name="modules_looks">Look modules</string>
     <string name="modules_looks_empty">Nothing here yet, add one</string>
+    <string name="modules_effects">Audio effect modules</string>
     <string name="modules_sources">JS &amp; source modules</string>
     <string name="modules_swipe_to_delete">Swipe to delete, hold a module to reorder</string>
     <string name="modules_add_more">Add a module</string>
@@ -73,6 +75,7 @@
     <string name="module_use_songs">Songs play from %1$s when it has them, in the order set under Audio Quality.</string>
     <string name="module_use_lyrics">Its lyrics join your lyrics sources.</string>
     <string name="module_use_look">Its look replaces your look settings while it\'s on, and yours come back when you turn it off.</string>
+    <string name="module_use_audio">Its effects show up in the mixer\'s Add effect list while it\'s on. Turning it off takes them out of your mix.</string>
     <string name="module_use_metadata">What it knows about a song shows first in About song.</string>
     <string name="module_enable">Enable</string>
     <string name="module_info">Module info</string>
@@ -84,7 +87,9 @@
     <string name="module_info_built_in">Built into Mochy</string>
     <string name="module_shader_problem">One of its shaders didn\'t load, so its player or bar shows the fallback there: %1$s</string>
     <string name="module_shader_needs_13">Its player shaders need Android 13, so this phone shows their fallbacks.</string>
+    <string name="module_lyrics_shader_needs_13">Its custom lyrics shaders need Android 13, so this phone shows plain custom lyrics.</string>
     <string name="module_glass_problem">Its glass didn\'t load, so the bars keep Mochy\'s frost: %1$s</string>
+    <string name="module_glass_needs_10">Its glass needs Android 10 or newer, so this phone uses the fallback.</string>
     <string name="module_glass_needs_13">Its glass needs Android 13 or newer, so this phone keeps Mochy\'s frost.</string>
     <string name="module_look_covered">%1$s is on above this look, so where both change the same thing, %1$s wins.</string>
     <string name="module_look_raise">Put this look on top</string>
@@ -247,6 +252,28 @@
     <string name="module_page_use_player">Use this player</string>
     <string name="module_page_more_songs">Show more</string>
     <string name="module_page_no_player">Turn this module on to see its player here.</string>
+    <string name="module_settings_styled_by">Styled by %1$s</string>
+    <string name="module_settings_open_modules">Modules</string>
+    <string name="module_settings_original">Original</string>
+    <string name="module_page_empty_songs">No songs yet</string>
+    <string name="module_page_empty_playlists">No playlists yet</string>
+    <string name="module_page_empty_albums">No albums yet</string>
+    <string name="module_page_empty_artists">No artists yet</string>
+    <string name="module_page_empty_speed_dial">Nothing pinned yet</string>
+    <string name="module_page_search_songs">Filter songs</string>
+    <string name="module_page_search_hint">Search songs, artists, albums</string>
+    <string name="module_page_bio_more">Read more</string>
+    <string name="module_page_bio_less">Show less</string>
+    <string name="module_page_stats_songs">Songs</string>
+    <string name="module_page_stats_liked">Liked</string>
+    <string name="module_page_stats_playlists">Playlists</string>
+    <string name="module_page_stats_plays">Plays</string>
+    <string name="module_page_nothing_playing">Nothing playing</string>
+    <string name="module_page_about">About</string>
+    <string name="module_page_auto_liked">Liked songs</string>
+    <string name="module_page_auto_downloaded">Downloaded</string>
+    <string name="module_page_auto_top">My Top 50</string>
+    <string name="module_page_auto_cached">Cached</string>
     <!-- a module player's bottom bar -->
     <string name="skin_bar_up_next">Up next</string>
     <string name="skin_bar_nothing_next">Nothing queued yet</string>
@@ -255,4 +282,43 @@
     <string name="module_appearance_icon">Choose icon</string>
     <string name="module_appearance_icon_reset">Reset icon</string>
     <string name="module_appearance_note">Only changes how this app shows the module, the module itself stays as it is. Leave the name empty to use its own.</string>
+
+    <!-- script and code module security warning sheets -->
+    <string name="module_script_warn_title">Heads up: third-party script</string>
+    <string name="module_script_warn_code_title">Heads up: code module</string>
+    <string name="module_script_warn_body">Scripts run third-party code made by other people, not Mochy. Make sure you trust where this came from before adding it.</string>
+    <string name="module_script_warn_code_body">This module carries its own executable code (like a JS script runner). Only install it if you trust where it came from.</string>
+    <string name="module_script_sandbox_title">What Mochy locks down</string>
+    <string name="module_script_sandbox_body">Your YouTube login, WebDAV and cloud backup passwords, Discord session, API keys, local network, and private app files are sealed off. Anything trying to extract them gets blocked.</string>
+    <string name="module_script_risks_title">Keep in mind</string>
+    <string name="module_script_risks_body">A script can see the songs you search and play through it, and can talk to external servers on the internet. Remove it any time from its page.</string>
+    <string name="module_script_files_title">Inside this package</string>
+    <string name="module_script_flags_title">Things to double-check</string>
+    <string name="module_script_warn_continue">I understand, continue</string>
+    <string name="module_script_blocked_title">Blocked — nice try</string>
+    <string name="module_script_blocked_body">Mochy stopped this before it could run because it tried to reach protected data, local network addresses, or app internals.</string>
+    <string name="module_script_blocked_reasons">What got caught</string>
+    <string name="modules_confirm_code_note">Heads up: this module runs its own code. You\'ll see a security check before it gets added.</string>
+    <string name="module_items_blocked">Blocked for security: this tried to access private Mochy data or local network addresses.</string>
+
+    <!-- interactive live surface player block -->
+    <string name="skin_surface_preview_title">PLAY</string>
+    <string name="skin_surface_preview_sub">Open player to run</string>
+    <string name="skin_surface_loading">Starting…</string>
+    <string name="skin_surface_missing_asset">Data file not found in this module</string>
+    <string name="skin_surface_engine_missing">This surface block needs its signed code APK (module.apk)</string>
+    <string name="skin_surface_other_loaded">Another surface engine is already running. Restart Mochy to switch.</string>
+    <string name="skin_surface_error">Couldn\'t start surface: %1$s</string>
+    <string name="skin_surface_btn_menu">ESC</string>
+    <string name="skin_surface_btn_map">MAP</string>
+    <string name="skin_surface_btn_run">RUN</string>
+    <string name="skin_surface_btn_yes">Y</string>
+    <string name="skin_surface_btn_strafe_l">SL</string>
+    <string name="skin_surface_btn_strafe_r">SR</string>
+    <string name="skin_surface_btn_action">ACT</string>
+    <string name="skin_surface_btn_use">USE</string>
+    <string name="skin_surface_btn_enter">OK</string>
+    <string name="skin_surface_btn_slot">S%1$d</string>
+    <string name="skin_surface_fullscreen">Fullscreen</string>
+    <string name="skin_surface_fullscreen_exit">Exit fullscreen</string>
 </resources>

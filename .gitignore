@@ -50,7 +50,10 @@ implementation_plan.md
 transcript_*.txt
 docs/*
 !docs/index.html
+!docs/download.html
+!docs/changelog.html
 !docs/.nojekyll
+!docs/CNAME
 !docs/assets/
 !docs/wiki/
 !docs/modules/
@@ -90,6 +93,7 @@ app/persistent-debug.keystore
 *.py
 !scripts/*.py
 !tools/stage/*.py
+!tools/fx/*.py
 .env
 output-metadata.json
 vcs.xml

@@ -11,6 +11,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.core.content.edit
 import com.mochyy.mochymusic.constants.EnableMonochromeBackendKey
+import com.mochyy.mochymusic.eq.mixer.ModuleProcessors
 import com.mochyy.mochymusic.lyrics.LyricsProviderRegistry
 import com.mochyy.mochymusic.lyrics.ModuleLyricsProvider
 import com.mochyy.mochymusic.module.AccountState
@@ -34,7 +35,11 @@ import com.mochyy.mochymusic.module.monochrome.MonochromeModule
 import com.mochyy.mochymusic.module.soundcloud.SoundCloudModule
 import com.mochyy.mochymusic.module.yandex.YandexMusicModule
 import com.mochyy.mochymusic.modules.code.CodeModules
+import com.mochyy.mochymusic.modules.code.CodeSkinModule
 import com.mochyy.mochymusic.modules.local.LocalModule
+import com.mochyy.mochymusic.modules.security.ModuleSanitizer
+import com.mochyy.mochymusic.modules.security.ModuleUrlGuard
+import com.mochyy.mochymusic.modules.security.SecretGuard
 import com.mochyy.mochymusic.modules.skin.ActiveSkin
 import com.mochyy.mochymusic.modules.skin.LookValues
 import com.mochyy.mochymusic.modules.skin.ModuleMenu
@@ -47,22 +52,21 @@ import com.mochyy.mochymusic.modules.web.FieldRange
 import com.mochyy.mochymusic.modules.web.FieldRanges
 import com.mochyy.mochymusic.modules.web.WebModule
 import com.mochyy.mochymusic.modules.web.WebModuleManifest
+import com.mochyy.mochymusic.utils.SecretVault
 import com.mochyy.mochymusic.utils.dataStore
 import com.mochyy.mochymusic.utils.get
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dalvik.system.PathClassLoader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber
@@ -118,9 +122,19 @@ data class ModuleEntry(
     /** the name shown everywhere: the person's own when they gave one */
     val name: String get() = customName ?: module.info.name
 
-    val icon: String? get() = customIcon ?: (module as? ModuleArt)?.icon
+    // the person's own picture is theirs to pick; a module's own art still goes through the safety check
+    val icon: String? get() = customIcon ?: safeArt((module as? ModuleArt)?.icon)
 
-    val banner: String? get() = (module as? ModuleArt)?.banner
+    val banner: String? get() = safeArt((module as? ModuleArt)?.banner)
+
+    private fun safeArt(raw: String?): String? {
+        val value = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        if (value.startsWith("/")) {
+            val path = runCatching { File(value).canonicalPath }.getOrNull() ?: return null
+            return path.takeIf { "/module_files/" in it || "/module_data/" in it }
+        }
+        return value.takeIf(ModuleUrlGuard::isSafeRemoteUrl)
+    }
 
     /** switched on and, when it needs an account, signed in: only then does anything it adds show up */
     val active: Boolean get() = enabled && account is AccountState.SignedIn
@@ -131,12 +145,14 @@ data class ModuleEntry(
 @Singleton
 class ModuleRegistry @Inject constructor(
     @ApplicationContext private val context: Context,
+    /** where the mixer finds the effects modules bring */
+    private val processors: ModuleProcessors,
 ) {
     // the same file the switches always lived in, so nobody's choices are lost
     private val prefs = context.getSharedPreferences("source_modules", Context.MODE_PRIVATE)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val looks = ModuleLooks(context)
-    private val updates by lazy { ModuleUpdates(prefs, client) }
+    private val updates by lazy { ModuleUpdates(prefs, sandboxClient) }
 
     private val client by lazy {
         OkHttpClient.Builder().followAppProxy()
@@ -144,6 +160,9 @@ class ModuleRegistry @Inject constructor(
             .readTimeout(20, TimeUnit.SECONDS)
             .build()
     }
+
+    // locked-down client for modules: no localhost/lan, no cookies, manual redirect checks
+    private val sandboxClient by lazy { ModuleUrlGuard.buildSandboxedClient(client) }
 
     @Volatile
     private var loaded: List<Pair<MochyModule, ModuleOrigin>>? = null
@@ -170,8 +189,13 @@ class ModuleRegistry @Inject constructor(
 
     fun all(): List<MochyModule> = modules.map { it.first }
 
-    // youtube starts on, modules start off until they're turned on (or signed in to)
     fun isEnabled(id: String): Boolean = prefs.getBoolean("enabled_$id", id == SourceModules.YouTubeId)
+
+    fun hasAcknowledgedScriptWarning(id: String): Boolean = prefs.getBoolean("script_warn_ack_$id", false)
+
+    fun acknowledgeScriptWarning(id: String) {
+        prefs.edit { putBoolean("script_warn_ack_$id", true) }
+    }
 
     fun setEnabled(id: String, on: Boolean) {
         val module = module(id)
@@ -281,8 +305,14 @@ class ModuleRegistry @Inject constructor(
                 glass = glass?.glass,
                 bar = looks.firstOrNull { it.skin?.bar != null }?.let { entry -> entry.skin?.let { LookValues(it, entry.values) } },
                 mini = looks.firstOrNull { it.skin?.mini != null }?.let { entry -> entry.skin?.let { LookValues(it, entry.values) } },
+                floating = looks.firstOrNull { it.skin?.floating != null }?.let { entry -> entry.skin?.let { LookValues(it, entry.values) } },
+                sheet = looks.firstOrNull { it.skin?.sheet != null }?.let { entry -> entry.skin?.let { LookValues(it, entry.values) } },
+                appBackground = looks.firstOrNull { it.skin?.appBackground != null }?.let { entry -> entry.skin?.let { LookValues(it, entry.values) } },
+                menuStyle = looks.firstOrNull { it.skin?.menuStyle != null }?.let { entry -> entry.skin?.let { LookValues(it, entry.values) } },
                 // a page can take one of mochy's over from any module that's on, not only a look
                 pages = list.filter { it.active }.mapNotNull { entry -> entry.skin?.takeIf { it.takeovers.isNotEmpty() }?.let { LookValues(it, entry.values) } },
+                // any module that's on can bring sheets, not only a look
+                sheets = list.filter { it.active }.mapNotNull { entry -> entry.skin?.takeIf { it.sheets.isNotEmpty() }?.let { LookValues(it, entry.values) } },
             ),
             scope,
         )
@@ -292,6 +322,21 @@ class ModuleRegistry @Inject constructor(
         )
         ModuleMetadata.sources = list.filter { it.active && it.adds(ModuleFeature.Metadata) }.mapNotNull { it.module as? MetadataModule }
         ModuleMenu.publish(list.filter { it.active }.mapNotNull { (it.module as? SkinSource)?.skin })
+        publishAudio(list)
+    }
+
+    private var audioJob: Job? = null
+
+    // the mixer offers what every module that's on brings; reading scripts and opening libraries stays off the main thread, the latest list wins
+    private fun publishAudio(list: List<ModuleEntry>) {
+        audioJob?.cancel()
+        audioJob = scope.launch {
+            processors.keepOnly(list.map { it.id }.toSet())
+            for (entry in list) {
+                val audio = (entry.module as? AudioModule)?.audio
+                processors.publish(entry.id, if (entry.active && audio != null) audio.kinds else emptyList())
+            }
+        }
     }
 
     private val ModuleEntry.skin: ModuleSkin? get() = (module as? SkinSource)?.skin
@@ -305,6 +350,10 @@ class ModuleRegistry @Inject constructor(
         if (entry.glass != null) add("glass")
         if (entry.skin?.bar != null) add("bar")
         if (entry.skin?.mini != null) add("mini")
+        if (entry.skin?.floating != null) add("floating")
+        if (entry.skin?.sheet != null) add("sheet")
+        if (entry.skin?.appBackground != null) add("appBackground")
+        if (entry.skin?.menuStyle != null) add("menuStyle")
     }
 
     // the first look above [entry] that takes something [entry] also brings, for its page to say so
@@ -360,15 +409,12 @@ class ModuleRegistry @Inject constructor(
         data object NoModuleInRelease : LinkCheck
     }
 
-    /** fetches the link's manifest.json without adding anything; a github project's link fetches its newest release's module zip instead */
     suspend fun check(link: String): LinkCheck = withContext(Dispatchers.IO) {
         GitHubReleases.parse(link)?.let { return@withContext checkGitHub(it) }
         val base = WebModuleManifest.baseOf(link) ?: return@withContext LinkCheck.NotALink
+        if (!ModuleUrlGuard.isSafeRemoteUrl(base)) return@withContext LinkCheck.NotALink
         val text = runCatching {
-            client.newCall(Request.Builder().url("$base/manifest.json").header("Accept", "application/json").build()).execute().use { response ->
-                if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
-                response.body.string()
-            }
+            ModuleUrlGuard.fetchCappedText(sandboxClient, "$base/manifest.json", MaxManifestBytes) ?: throw IOException("blocked")
         }.getOrElse { return@withContext LinkCheck.Unreachable }
         if (WebModuleManifest.isWebsite(text)) return@withContext LinkCheck.Website
         val manifest = WebModuleManifest.parse(text) ?: return@withContext LinkCheck.NotAModule
@@ -408,20 +454,22 @@ class ModuleRegistry @Inject constructor(
         }
         // songs and lyrics have to come from somewhere, a file on its own can only hold a look
         if (manifest.resourceNames.any { it in ServiceResources }) return@withContext LinkCheck.NeedsUrl
-        if (!manifest.changesLook) return@withContext LinkCheck.NotAModule
+        if (!manifest.changesLook && !manifest.bringsAudio) return@withContext LinkCheck.NotAModule
         val local = LocalModule(manifest, files = null)
         LinkCheck.Ready(null, text, local.info.name, local.adds, module(local.info.id) != null, fileNameOf(uri), uri, root)
     }
 
-    // a zip that brings its own code: checked to be signed like mochy now, so the sheet can say so before anything is added
     private fun checkCode(uri: Uri, text: String, root: String, manifest: WebModuleManifest, code: String): LinkCheck {
-        val apk = CodeModules.extract(context, uri, root + code.trimStart('/')) ?: return LinkCheck.NotAModule
+        val cleanCode = code.trimStart('/')
+        if (cleanCode.isBlank() || '\\' in cleanCode || '\u0000' in cleanCode || cleanCode.split('/').any { it.isEmpty() || it == "." || it == ".." }) return LinkCheck.NotAModule
+        val apk = CodeModules.extract(context, uri, root + cleanCode) ?: return LinkCheck.NotAModule
         if (!CodeModules.signedLikeMochy(context, apk)) return LinkCheck.NotSigned
         val adds = buildSet {
             if (manifest.playsSongs) add(ModuleFeature.AudioSource)
             if (manifest.hasLyrics) add(ModuleFeature.Lyrics)
             if (manifest.hasMetadata) add(ModuleFeature.Metadata)
             if (manifest.changesLook) add(ModuleFeature.Look)
+            if (manifest.bringsAudio) add(ModuleFeature.AudioProcessor)
         }
         val name = manifest.name.ifBlank { manifest.id }
         return LinkCheck.Ready(null, text, name, adds, module(manifest.id) != null, fileNameOf(uri), uri, root, code = apk)
@@ -467,13 +515,13 @@ class ModuleRegistry @Inject constructor(
         }
     }.getOrNull() ?: uri.lastPathSegment.orEmpty()
 
-    /** adds a checked link or zip as a module, switched off until the user turns it on; gives back its id, null when a zip's code wouldn't start. unpacks a zip's files, so not on the main thread */
-    fun install(ready: LinkCheck.Ready): String? {
-        ready.code?.let { return installCode(ready, it) }
+    fun install(ready: LinkCheck.Ready, expectedId: String? = null): String? {
+        ready.code?.let { return installCode(ready, it, expectedId) }
         val manifest = requireNotNull(WebModuleManifest.parse(ready.manifestText))
         val base = ready.base
+        if (base != null && !ModuleUrlGuard.isSafeRemoteUrl(base)) return null
         val newId = if (base != null) WebModuleManifest.idFor(base, manifest) else LocalModule.idFor(manifest)
-        // the zip's pictures and fonts go in first, so the module is built with them in place; a link brings none, and old ones go
+        if (expectedId != null && newId != expectedId) return null
         val files = ready.zip?.let { SkinFiles.unpack(context, it, newId, ready.zipRoot) }
         if (ready.zip == null) SkinFiles.delete(context, newId)
         val (module, origin) = if (base != null) {
@@ -502,18 +550,23 @@ class ModuleRegistry @Inject constructor(
         return id
     }
 
-    // the zip's code goes in a folder of its own and starts; one already here with the same id stops and is replaced
-    private fun installCode(ready: LinkCheck.Ready, apk: File): String? {
-        val key = WebModuleManifest.parse(ready.manifestText)?.id?.ifBlank { null } ?: ready.name
-        val installed = CodeModules.install(context, key, apk) ?: return null
-        val fresh = installed.module
-        val id = fresh.info.id
+    private fun installCode(ready: LinkCheck.Ready, apk: File, expectedId: String? = null): String? {
+        val manifest = WebModuleManifest.parse(ready.manifestText)
+        val key = manifest?.id?.ifBlank { null } ?: ready.name
+        val installed = CodeModules.install(context, key, apk, expectedId = expectedId) ?: return null
+        val id = installed.module.info.id
+        // unpack pictures, fonts, shaders and surface data files sitting beside module.apk in the zip
+        val files = ready.zip?.let { SkinFiles.unpack(context, it, id, ready.zipRoot) }
+        val fresh = CodeSkinModule.wrap(installed.module, manifest, files, CodeModules.nativeDir(context, installed.folder))
         synchronized(this) {
             val saved = savedCodeModules().filter { it.optString("id") != id }
-            val entry = JSONObject().put("id", id).put("folder", installed.folder).put("file", ready.from)
+            val entry = JSONObject()
+                .put("id", id)
+                .put("folder", installed.folder)
+                .put("file", ready.from)
+                .put("manifest", ready.manifestText)
             prefs.edit { putString(CodeModulesKey, JSONArray(saved + entry).toString()) }
-            // the old copy's folder goes on the next start, its code may still be finishing a call
-            (module(id) as? BridgedModule)?.close()
+            closeCodeModule(module(id))
             if (!prefs.contains("added_$id")) prefs.edit { putLong("added_$id", System.currentTimeMillis()) }
             prefs.edit { putLong("installed_$id", System.currentTimeMillis()) }
             fresh.attach(hostFor(fresh))
@@ -525,9 +578,15 @@ class ModuleRegistry @Inject constructor(
         return id
     }
 
+    private fun closeCodeModule(module: MochyModule?) {
+        when (module) {
+            is BridgedModule -> module.close()
+            is AutoCloseable -> module.close()
+        }
+    }
+
     // ---- updates --------------------------------------------------------------------------------
 
-    /** asks every module's github project or link whether a newer copy is out; [force] skips the wait between checks, [only] checks one */
     suspend fun checkUpdates(force: Boolean, only: String? = null) = withContext(Dispatchers.IO) {
         modules.map { it.first }.filter { only == null || it.info.id == only }.forEach { module ->
             runCatching { updates.check(module.info.id, module.info.version, force, preferDebug = PreferDebugZips) }
@@ -535,14 +594,13 @@ class ModuleRegistry @Inject constructor(
         refresh()
     }
 
-    /** fetches the newer copy from where the module came from and puts it in place; its switch and settings stay */
     suspend fun update(id: String): LinkCheck {
         val source = updates.source(id) ?: return LinkCheck.NotALink
         val check = check(source.link)
         if (check !is LinkCheck.Ready) return check
-        // a link the author moved to another module can't replace this one
+        // an update can't hijack another module's id, even for code zips
         if (check.code == null && idOf(check) != id) return LinkCheck.NotAModule
-        withContext(Dispatchers.IO) { install(check) } ?: return LinkCheck.NotAModule
+        withContext(Dispatchers.IO) { install(check, expectedId = id) } ?: return LinkCheck.NotAModule
         return check
     }
 
@@ -563,7 +621,7 @@ class ModuleRegistry @Inject constructor(
             codeFolder?.let { CodeModules.delete(context, it) }
         }
         module.signOut()
-        (module as? BridgedModule)?.close()
+        closeCodeModule(module)
         updates.forget(id)
         synchronized(this) {
             prefs.edit {
@@ -573,12 +631,13 @@ class ModuleRegistry @Inject constructor(
                     else -> putString(LocalModulesKey, JSONArray(savedLocalModules().filter { it.optString("id") != id }).toString())
                 }
                 remove("enabled_$id")
+                remove("script_warn_ack_$id")
                 remove("added_$id")
                 remove("installed_$id")
                 module.choices.forEach { remove("pick_${id}_${it.id}") }
                 runCatching { (module as? ModuleFields)?.fields }.getOrNull().orEmpty().forEach { remove("field_${id}_${it.id}") }
             }
-            context.getSharedPreferences("module_$id", Context.MODE_PRIVATE).edit { clear() }
+            context.getSharedPreferences(storageNameFor(id), Context.MODE_PRIVATE).edit { clear() }
             loaded = modules.filter { it.first.info.id != id }
         }
         refresh()
@@ -603,13 +662,17 @@ class ModuleRegistry @Inject constructor(
         val savedCode = savedCodeModules()
         CodeModules.tidy(context, savedCode.map { it.optString("folder") }.toSet())
         val code = savedCode.mapNotNull { saved ->
-            CodeModules.load(context, saved.optString("folder"))?.let { it.module to ModuleOrigin.Code(saved.optString("file")) }
+            CodeModules.load(context, saved.optString("folder"))?.let { loadedCode ->
+                val manifest = saved.optString("manifest").takeIf { it.isNotBlank() }?.let(WebModuleManifest::parse)
+                val wrapped = CodeSkinModule.wrap(loadedCode.module, manifest, filesFor(loadedCode.module.info.id), CodeModules.nativeDir(context, loadedCode.folder))
+                wrapped to ModuleOrigin.Code(saved.optString("file"))
+            }
         }
         // sites that got in as modules before they were turned away; they never played a song, so they go
         val (sites, kept) = savedWebModules().partition { WebModuleManifest.isWebsite(it.optString("manifest")) }
         if (sites.isNotEmpty()) prefs.edit { putString(WebModulesKey, JSONArray(kept).toString()) }
         val web = kept.mapNotNull { saved ->
-            val base = saved.optString("base").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val base = saved.optString("base").takeIf { it.isNotBlank() && ModuleUrlGuard.isSafeRemoteUrl(it) } ?: return@mapNotNull null
             val manifest = WebModuleManifest.parse(saved.optString("manifest")) ?: return@mapNotNull null
             WebModule(base, manifest, context.resources, filesFor(WebModuleManifest.idFor(base, manifest))) to ModuleOrigin.Web(base)
         }
@@ -628,13 +691,15 @@ class ModuleRegistry @Inject constructor(
             }
     }
 
-    // the pictures and fonts a module's zip brought, when it came as one
     private fun filesFor(id: String): File? = SkinFiles.folderFor(context, id).takeIf { it.isDirectory }
 
-    // the folder a module keeps its own files in, the scripts or packs people add to it
-    private fun folderFor(id: String) = File(context.filesDir, "module_data/" + id.replace(Regex("[^a-z0-9._-]"), "-"))
+    private fun folderFor(id: String): File {
+        val root = File(context.filesDir, "module_data")
+        return ModuleSanitizer.safeChild(root, ModuleSanitizer.safeSegment(id)) ?: File(root, "module")
+    }
 
-    /** monochrome used to be built into playback with its own switch; it carries over, once */
+    private fun storageNameFor(id: String) = "module_${ModuleSanitizer.safeSegment(id)}"
+
     private fun migrateMonochromeSwitch() {
         if (prefs.getBoolean("migrated_monochrome", false)) return
         val wasOn = runCatching { context.dataStore.get(EnableMonochromeBackendKey, false) }.getOrDefault(false)
@@ -645,33 +710,43 @@ class ModuleRegistry @Inject constructor(
     }
 
     private fun hostFor(module: MochyModule) = object : ModuleHost {
-        private val store = context.getSharedPreferences("module_${module.info.id}", Context.MODE_PRIVATE)
+        private val id = module.info.id
+        private val safeId = ModuleSanitizer.safeSegment(id)
+        private val domain = "module:$safeId"
+        private val builtIn = id in BuiltInIds
+        private val store = context.getSharedPreferences(storageNameFor(id), Context.MODE_PRIVATE)
 
         override val storage = object : ModuleStorage {
-            override fun get(key: String): String? = store.getString(key, null)
-            override fun set(key: String, value: String?) = store.edit { if (value == null) remove(key) else putString(key, value) }
-        }
+            override fun get(key: String): String? {
+                // lol nice try if a shady module tries probing mochy's creds
+                if (!builtIn && SecretGuard.looksLikeSecretProbe(key)) return SecretGuard.LolText
+                val raw = store.getString(key, null) ?: return null
+                val opened = SecretVault.open(raw, domain) ?: return null
+                if (SecretVault.needsUpgrade(raw)) {
+                    store.edit { putString(key, SecretVault.seal(opened, domain)) }
+                }
+                return opened
+            }
 
-        override fun http(request: HttpRequest): HttpResponse {
-            val builder = Request.Builder().url(request.url)
-            request.headers.forEach { (k, v) -> builder.header(k, v) }
-            val body = request.body?.toRequestBody(request.contentType?.toMediaTypeOrNull())
-            // okhttp refuses a body on a get or a head, even an empty one
-            val bodiless = request.method == "GET" || request.method == "HEAD"
-            builder.method(request.method, if (bodiless) null else body ?: ByteArray(0).toRequestBody())
-            client.newCall(builder.build()).execute().use { response ->
-                return HttpResponse(response.code, response.body.bytes(), response.headers.associate { (name, value) -> name.lowercase() to value })
+            override fun set(key: String, value: String?) {
+                if (!builtIn && SecretGuard.looksLikeSecretProbe(key)) return
+                if (value != null && !builtIn && SecretGuard.containsSecret(value)) return
+                store.edit {
+                    if (value == null) remove(key) else putString(key, SecretVault.seal(value, domain))
+                }
             }
         }
 
+        override fun http(request: HttpRequest): HttpResponse =
+            ModuleUrlGuard.executeSandboxed(sandboxClient, id, request)
+
         override fun log(message: String) {
-            Timber.tag("Module:${module.info.id}").d(message)
+            Timber.tag("Module:$safeId").d(SecretGuard.redact(message))
         }
 
-        override val folder: File by lazy { folderFor(module.info.id).also { it.mkdirs() } }
+        override val folder: File by lazy { folderFor(id).also { it.mkdirs() } }
     }
 
-    /** module apps installed on the phone, signed like mochy and built for this api */
     @SuppressLint("QueryPermissionsNeeded")
     private fun discover(): List<Pair<MochyModule, ModuleOrigin>> = runCatching {
         val pm = context.packageManager
@@ -686,17 +761,32 @@ class ModuleRegistry @Inject constructor(
             }
             runCatching {
                 val app = service.applicationInfo
-                val loader = PathClassLoader(app.sourceDir, app.nativeLibraryDir, javaClass.classLoader)
+                // don't let module apks reach mochy's vault, innertube, or backup classes
+                val loader = PathClassLoader(app.sourceDir, app.nativeLibraryDir, ApiOnlyParent(javaClass.classLoader!!))
                 val module = loader.loadClass(entry).getDeclaredConstructor().newInstance() as MochyModule
                 if (module.info.apiVersion != MODULE_API_VERSION) {
                     Timber.tag(Tag).w("Skipping module $pkg: built for API ${module.info.apiVersion}, Mochy has $MODULE_API_VERSION")
+                    null
+                } else if (!ModuleSanitizer.isValidModuleId(module.info.id)) {
+                    Timber.tag(Tag).w("Skipping module $pkg: bad id ${module.info.id}")
                     null
                 } else module to ModuleOrigin.App(pkg)
             }.onFailure { Timber.tag(Tag).w(it, "Couldn't load module $pkg") }.getOrNull()
         }
     }.getOrDefault(emptyList())
 
+    // blocks module apks from touching internal app classes while keeping the module api and kotlin runtime visible
+    private class ApiOnlyParent(parent: ClassLoader) : ClassLoader(parent) {
+        override fun loadClass(name: String, resolve: Boolean): Class<*> {
+            val isMochyInternal = name.startsWith("com.mochyy.mochymusic.") && !name.startsWith("com.mochyy.mochymusic.module.")
+            val isInnerTube = name.startsWith("com.music.innertube.")
+            if (isMochyInternal || isInnerTube) throw ClassNotFoundException("lol nope: $name")
+            return super.loadClass(name, resolve)
+        }
+    }
+
     companion object {
+        private val BuiltInIds = setOf(AppleMusicModule.Id, MonochromeModule.Id, JioSaavnModule.Id)
         private const val Tag = "ModuleRegistry"
         private const val WebModulesKey = "web_modules"
         private const val LocalModulesKey = "local_modules"

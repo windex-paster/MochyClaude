@@ -100,8 +100,8 @@ fun MochyTheme(
     )
     val chosen = if (appFont == com.mochyy.mochymusic.constants.AppFont.CLAUDE) ClaudeSerif else null
     androidx.compose.runtime.SideEffect { UserFont.family = chosen }
-    val font = LookFont.family ?: chosen ?: InterFontFamily
-    val typography = remember(font) { appTypography(font) }
+    val resolvedFonts = AppFonts.resolvedFonts()
+    val typography = remember(resolvedFonts) { appTypography(resolvedFonts) }
     MaterialTheme(
         colorScheme = colorScheme,
         typography = typography,

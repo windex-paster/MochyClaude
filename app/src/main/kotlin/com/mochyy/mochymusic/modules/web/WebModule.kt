@@ -32,6 +32,7 @@ import com.mochyy.mochymusic.module.TrackMatcher
 import com.mochyy.mochymusic.module.TrackMetadata
 import com.mochyy.mochymusic.module.TrackQuery
 import com.mochyy.mochymusic.modules.DeviceDecoders
+import com.mochyy.mochymusic.modules.security.ModuleUrlGuard
 import com.mochyy.mochymusic.modules.skin.ModuleSkin
 import com.mochyy.mochymusic.modules.skin.SkinGlass
 import com.mochyy.mochymusic.modules.skin.SkinParser
@@ -67,7 +68,12 @@ internal class WebModule(
         author = manifest.author,
     )
 
-    override val skin: ModuleSkin? = SkinParser.parse(info.id, info.name, manifest.player, manifest.font, manifest.pages, files, base, manifest.actions, manifest.glass, manifest.players, manifest.bar, manifest.mini)
+    override val skin: ModuleSkin? = SkinParser.parse(
+        info.id, info.name, manifest.player, manifest.font, manifest.pages, files, base,
+        manifest.actions, manifest.glass, manifest.players, manifest.bar, manifest.mini,
+        floating = manifest.floating, background = manifest.background, appBackground = manifest.appBackground,
+        sheet = manifest.sheet, menu = manifest.menu, sheets = manifest.sheets,
+    )
 
     override val icon: String? = resolveModuleArt(manifest.icon, files, base)
 
@@ -304,9 +310,8 @@ internal class WebModule(
         val response = runCatching { host.http(HttpRequest("$base/stream/${enc(track.id)}?${paramsFor(tier, atmos)}", headers = headers)) }.getOrNull()
         if (response == null || !response.ok) return null
         val answer = runCatching { json.parseToJsonElement(response.text) as? JsonObject }.getOrNull() ?: return null
-        // a locked stream would need keys mochy doesn't have
         if ((answer["encrypted"] as? JsonPrimitive)?.let { it.booleanOrNull ?: (it.contentOrNull !in setOf(null, "", "false", "none")) } == true) return null
-        val url = answer.string("url")?.takeIf { it.startsWith("http") } ?: return null
+        val url = answer.string("url")?.takeIf { ModuleUrlGuard.isSafeRemoteUrl(it) } ?: return null
         return streamOf(url, answer, rowIsAtmos)
     }
 
@@ -427,7 +432,7 @@ internal class WebModule(
             producers = o.list("producers"),
             label = o.string("label"),
             about = o.string("about") ?: o.string("description"),
-            coverUrl = (o.string("coverUrl") ?: o.string("cover") ?: o.string("artwork"))?.takeIf { it.startsWith("https://") || it.startsWith("http://") },
+            coverUrl = (o.string("coverUrl") ?: o.string("cover") ?: o.string("artwork"))?.takeIf { ModuleUrlGuard.isSafeRemoteUrl(it) },
             isrc = o.string("isrc"),
         )
         // an answer with nothing in it is the same as not knowing the song

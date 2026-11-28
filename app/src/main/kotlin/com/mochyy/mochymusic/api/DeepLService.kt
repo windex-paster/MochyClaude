@@ -14,11 +14,16 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 object DeepLService {
-    private val client = OkHttpClient.Builder().followAppProxy()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(90, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .build()
+    private val client by lazy {
+        OkHttpClient.Builder()
+            .followAppProxy()
+            .followRedirects(false)
+            .followSslRedirects(false)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(90, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
     private val JSON = "application/json; charset=utf-8".toMediaType()
 
     suspend fun translate(

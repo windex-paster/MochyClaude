@@ -23,6 +23,7 @@ import com.mochyy.mochymusic.utils.get
 import org.json.JSONObject
 import java.io.File
 import java.io.IOException
+import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -102,13 +103,32 @@ class ModuleFeed @Inject constructor(
 ) {
     private val prefs = context.getSharedPreferences(PrefsName, Context.MODE_PRIVATE)
     private val client by lazy {
-        OkHttpClient.Builder().followAppProxy().connectTimeout(12, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).build()
+        OkHttpClient.Builder()
+            .followAppProxy()
+            .followRedirects(false)
+            .followSslRedirects(false)
+            .connectTimeout(12, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
     }
 
-    private val _session = MutableStateFlow(prefs.getString(SessionKey, null))
+    private val _session = MutableStateFlow(readSession())
 
-    /** the session the feed gave back, null while signed out; the browser reloads when it changes */
     val session: StateFlow<String?> = _session.asStateFlow()
+
+    private fun readSession(): String? {
+        val raw = prefs.getString(SessionKey, null) ?: return null
+        val opened = com.mochyy.mochymusic.utils.SecretVault.open(raw, com.mochyy.mochymusic.utils.SecretVault.ModuleFeedDomain)
+        if (opened == null) {
+            prefs.edit { remove(SessionKey) }
+            return null
+        }
+        if (com.mochyy.mochymusic.utils.SecretVault.needsUpgrade(raw)) {
+            prefs.edit { putString(SessionKey, com.mochyy.mochymusic.utils.SecretVault.seal(opened, com.mochyy.mochymusic.utils.SecretVault.ModuleFeedDomain)) }
+        }
+        com.mochyy.mochymusic.modules.security.SecretGuard.register("module_feed", opened)
+        return opened
+    }
 
     val isSetUp: Boolean get() = FeedUrl.isNotBlank()
 
@@ -120,7 +140,7 @@ class ModuleFeed @Inject constructor(
         val state = ByteArray(24).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(it) }
         // the sign-in page opens in a browser, so the build's signature rides along in the link instead of a header
         val (time, signature) = StoreSignature.sign(context, "GET", "/login", state) ?: return null
-        prefs.edit { putString(StateKey, state) }
+        prefs.edit { putString(StateKey, "${System.currentTimeMillis()}|$state") }
         return Uri.parse("$FeedUrl/login").buildUpon()
             .appendQueryParameter("state", state)
             .appendQueryParameter("t", time)
@@ -135,11 +155,22 @@ class ModuleFeed @Inject constructor(
             return false
         }
         if (redirect.scheme != "mochy-modules" || redirect.host != "signed-in") return false
-        val expected = prefs.getString(StateKey, null) ?: return false
+        val stored = prefs.getString(StateKey, null) ?: return false
+        val sep = stored.indexOf('|')
+        val createdAt = if (sep > 0) stored.substring(0, sep).toLongOrNull() ?: 0L else 0L
+        val expected = if (sep > 0 && createdAt > 0L) stored.substring(sep + 1) else stored
+        val expired = createdAt > 0L && System.currentTimeMillis() - createdAt > StateTtlMs
+        val givenState = redirect.getQueryParameter("state")
+        if (expired || expected.isEmpty() || givenState == null ||
+            !MessageDigest.isEqual(expected.toByteArray(Charsets.UTF_8), givenState.toByteArray(Charsets.UTF_8))
+        ) {
+            if (expired) prefs.edit { remove(StateKey) }
+            return false
+        }
         prefs.edit { remove(StateKey) }
-        val session = redirect.getQueryParameter("session")?.takeIf { SessionPattern.matches(it) }
-        if (redirect.getQueryParameter("state") != expected || session == null) return false
-        prefs.edit { putString(SessionKey, session) }
+        val session = redirect.getQueryParameter("session")?.takeIf { SessionPattern.matches(it) } ?: return false
+        prefs.edit { putString(SessionKey, com.mochyy.mochymusic.utils.SecretVault.seal(session, com.mochyy.mochymusic.utils.SecretVault.ModuleFeedDomain)) }
+        com.mochyy.mochymusic.modules.security.SecretGuard.register("module_feed", session)
         _session.value = session
         return true
     }
@@ -194,7 +225,25 @@ class ModuleFeed @Inject constructor(
                     return@use null
                 }
                 if (!res.isSuccessful) return@use null
-                file.outputStream().use { out -> res.body.byteStream().copyTo(out) }
+                // cap zip downloads so a busted or shady response can't nuke storage
+                val buffer = ByteArray(16 * 1024)
+                var written = 0L
+                val ok = file.outputStream().use { out ->
+                    val input = res.body.byteStream()
+                    while (true) {
+                        val n = input.read(buffer)
+                        if (n < 0) return@use true
+                        written += n
+                        if (written > MaxZipBytes) return@use false
+                        out.write(buffer, 0, n)
+                    }
+                    @Suppress("UNREACHABLE_CODE")
+                    false
+                }
+                if (!ok) {
+                    file.delete()
+                    return@use null
+                }
                 file
             }
         }.getOrNull()
@@ -211,6 +260,7 @@ class ModuleFeed @Inject constructor(
 
     private fun forgetSession() {
         prefs.edit { remove(SessionKey) }
+        com.mochyy.mochymusic.modules.security.SecretGuard.clear("module_feed")
         _session.value = null
     }
 
@@ -282,7 +332,7 @@ class ModuleFeed @Inject constructor(
                 link = item.optString("link").takeIf { it.startsWith("https://") },
                 size = item.optLong("size", -1).takeIf { it >= 0 && !item.isNull("size") },
                 updated = item.optLong("updated", -1).takeIf { it > 0 },
-                postUrl = item.optString("postUrl"),
+                postUrl = item.optString("postUrl").takeIf { it.startsWith("https://") }.orEmpty(),
             )
         }
     }
@@ -294,8 +344,15 @@ class ModuleFeed @Inject constructor(
         private const val SessionKey = "session"
         private const val PrefsName = "module_browser"
         private const val StateKey = "state"
+        private const val StateTtlMs = 15 * 60_000L
+        private const val MaxZipBytes = 40L * 1024 * 1024
         private val SessionPattern = Regex("^[0-9a-f]{64}$")
         private val PostIdPattern = Regex("^\\d+$")
         private val ItemIdPattern = Regex("^[A-Za-z0-9_-]{1,128}$")
+        // only the feed's own icon and picture addresses, never anything else on its host
+        private val OwnPicturePattern = Regex("^" + Regex.escape(FeedUrl) + "/(icons/\\d+|pictures/\\d+/\\w+)$")
+
+        /** true for a store icon, banner or preview the feed serves itself; modules stay locked out of the feed, but the store still shows these */
+        fun isOwnPicture(url: String?): Boolean = url != null && FeedUrl.isNotBlank() && OwnPicturePattern.matches(url)
     }
 }

@@ -14,7 +14,7 @@ on:
 
 jobs:
   build_debug:
-    name: Build Universal GMS Debug
+    name: Build Universal FOSS Debug
     runs-on: ubuntu-latest
     if: github.actor != 'dependabot[bot]'
     steps:
